@@ -1,4 +1,4 @@
-# VibeVoice Realtime Agent
+# tts-ops: production-ready realtime TTS infrastructure built on VibeVoice
 
 Production-grade realtime AI voice agent platform using Microsoft's VibeVoice-Realtime-0.5B model.
 
