@@ -1,0 +1,21 @@
+{{- if .Values.ttsService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "voice-agent.fullname" . }}-tts
+  labels:
+    {{- include "voice-agent.tts.labels" . | nindent 4 }}
+  {{- with .Values.ttsService.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.ttsService.service.type }}
+  ports:
+    - port: {{ .Values.ttsService.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "voice-agent.tts.selectorLabels" . | nindent 4 }}
+{{- end }}

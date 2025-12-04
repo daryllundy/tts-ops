@@ -1,12 +1,12 @@
 """Common utilities shared across services."""
 
-from common.config import (
+from .config import (
     get_agent_settings,
     get_observability_settings,
     get_tts_settings,
 )
-from common.logging import get_logger, setup_logging
-from common.metrics import (
+from .logging import get_logger, setup_logging
+from .metrics import (
     AGENT_CHAT_DURATION,
     AGENT_LLM_DURATION,
     AGENT_REQUESTS_TOTAL,
