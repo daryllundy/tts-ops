@@ -1,0 +1,40 @@
+{{- if .Values.serviceAccount.create }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "voice-agent.serviceAccountName" . }}
+  labels:
+    {{- include "voice-agent.labels" . | nindent 4 }}
+  {{- with .Values.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+---
+{{- end }}
+{{- if and .Values.ttsService.enabled .Values.ttsService.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "voice-agent.fullname" . }}-tts
+  labels:
+    {{- include "voice-agent.tts.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.ttsService.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "voice-agent.tts.selectorLabels" . | nindent 6 }}
+---
+{{- end }}
+{{- if and .Values.agentService.enabled .Values.agentService.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "voice-agent.fullname" . }}-agent
+  labels:
+    {{- include "voice-agent.agent.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.agentService.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "voice-agent.agent.selectorLabels" . | nindent 6 }}
+{{- end }}

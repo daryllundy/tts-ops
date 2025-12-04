@@ -1,0 +1,32 @@
+apiVersion: v2
+name: voice-agent
+description: Production-grade realtime voice agent platform using VibeVoice-Realtime
+
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+keywords:
+  - tts
+  - text-to-speech
+  - voice-agent
+  - ai
+  - gpu
+
+home: https://github.com/yourorg/vibevoice-realtime-agent
+sources:
+  - https://github.com/yourorg/vibevoice-realtime-agent
+
+maintainers:
+  - name: Your Name
+    email: you@example.com
+
+dependencies:
+  - name: prometheus
+    version: "25.8.0"
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: prometheus.enabled
+  - name: grafana
+    version: "7.0.0"
+    repository: https://grafana.github.io/helm-charts
+    condition: grafana.enabled

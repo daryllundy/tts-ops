@@ -1,0 +1,242 @@
+# =============================================================================
+# Voice Agent Helm Chart Values
+# =============================================================================
+
+global:
+  imagePullPolicy: IfNotPresent
+  imagePullSecrets: []
+
+# -----------------------------------------------------------------------------
+# TTS Service Configuration
+# -----------------------------------------------------------------------------
+ttsService:
+  enabled: true
+
+  image:
+    repository: your-registry/vibevoice-tts
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+
+  resources:
+    requests:
+      cpu: "2"
+      memory: "8Gi"
+      nvidia.com/gpu: 1
+    limits:
+      cpu: "4"
+      memory: "16Gi"
+      nvidia.com/gpu: 1
+
+  # Environment variables
+  env:
+    TTS_MODEL_NAME: "microsoft/VibeVoice-Realtime-0.5B"
+    TTS_DEVICE: "cuda:0"
+    TTS_DTYPE: "float16"
+    TTS_MAX_BATCH_SIZE: "4"
+    TTS_WARMUP_ON_START: "true"
+    OBS_LOG_LEVEL: "INFO"
+    OBS_LOG_FORMAT: "json"
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 8000
+    annotations: {}
+
+  # Probes
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 120
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /ready
+      port: http
+    initialDelaySeconds: 120
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  # Node selection for GPU
+  nodeSelector:
+    nvidia.com/gpu.present: "true"
+
+  tolerations:
+    - key: "nvidia.com/gpu"
+      operator: "Exists"
+      effect: "NoSchedule"
+
+  affinity: {}
+
+  # Pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+  # Model cache persistence
+  persistence:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 50Gi
+    mountPath: /root/.cache/huggingface
+
+# -----------------------------------------------------------------------------
+# Agent Service Configuration
+# -----------------------------------------------------------------------------
+agentService:
+  enabled: true
+
+  image:
+    repository: your-registry/voice-agent
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  replicaCount: 2
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "2"
+      memory: "2Gi"
+
+  # Environment variables
+  env:
+    AGENT_LLM_PROVIDER: "anthropic"
+    AGENT_LLM_MODEL: "claude-sonnet-4-20250514"
+    AGENT_LLM_MAX_TOKENS: "1024"
+    OBS_LOG_LEVEL: "INFO"
+    OBS_LOG_FORMAT: "json"
+
+  # Secret environment variables (reference existing secrets)
+  envFrom:
+    - secretRef:
+        name: voice-agent-secrets
+        optional: true
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 8080
+    annotations: {}
+
+  # Probes
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+  # Horizontal Pod Autoscaler
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  # Pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+# -----------------------------------------------------------------------------
+# Ingress Configuration
+# -----------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/websocket-services: "voice-agent-agent"
+  hosts:
+    - host: voice.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: agent
+  tls: []
+  #  - secretName: voice-agent-tls
+  #    hosts:
+  #      - voice.example.com
+
+# -----------------------------------------------------------------------------
+# Service Account
+# -----------------------------------------------------------------------------
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# -----------------------------------------------------------------------------
+# Observability
+# -----------------------------------------------------------------------------
+prometheus:
+  enabled: false
+  # Configure if enabling subchart
+
+grafana:
+  enabled: false
+  # Configure if enabling subchart
+
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  labels: {}
+
+# -----------------------------------------------------------------------------
+# Security
+# -----------------------------------------------------------------------------
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443

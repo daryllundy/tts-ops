@@ -1,0 +1,77 @@
+{{- if .Values.agentService.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "voice-agent.fullname" . }}-agent
+  labels:
+    {{- include "voice-agent.agent.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.agentService.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      {{- include "voice-agent.agent.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "voice-agent.agent.selectorLabels" . | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ .Values.agentService.service.port }}"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: {{ include "voice-agent.serviceAccountName" . }}
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: agent
+          image: "{{ .Values.agentService.image.repository }}:{{ .Values.agentService.image.tag }}"
+          imagePullPolicy: {{ .Values.agentService.image.pullPolicy | default .Values.global.imagePullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.agentService.service.port }}
+              protocol: TCP
+          env:
+            - name: AGENT_TTS_BASE_URL
+              value: {{ include "voice-agent.ttsUrl" . | quote }}
+            {{- range $key, $value := .Values.agentService.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          {{- with .Values.agentService.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.agentService.resources | nindent 12 }}
+          {{- with .Values.agentService.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.agentService.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.agentService.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.agentService.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.agentService.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

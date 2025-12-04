@@ -1,0 +1,102 @@
+version: "3.8"
+
+services:
+  tts:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.tts
+    image: vibevoice-tts:dev
+    container_name: vibevoice-tts
+    ports:
+      - "8000:8000"
+      - "9090:9090"
+    environment:
+      - TTS_MODEL_NAME=microsoft/VibeVoice-Realtime-0.5B
+      - TTS_DEVICE=cuda:0
+      - TTS_WARMUP_ON_START=true
+      - OBS_LOG_LEVEL=INFO
+      - OBS_LOG_FORMAT=console
+    volumes:
+      - model-cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    networks:
+      - voice-agent
+
+  agent:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.agent
+    image: voice-agent:dev
+    container_name: voice-agent
+    ports:
+      - "8080:8080"
+    environment:
+      - AGENT_TTS_BASE_URL=http://tts:8000
+      - AGENT_LLM_PROVIDER=anthropic
+      - AGENT_LLM_MODEL=claude-sonnet-4-20250514
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OBS_LOG_LEVEL=INFO
+      - OBS_LOG_FORMAT=console
+    depends_on:
+      tts:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - voice-agent
+
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+    networks:
+      - voice-agent
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - voice-agent
+
+volumes:
+  model-cache:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  voice-agent:
+    driver: bridge
