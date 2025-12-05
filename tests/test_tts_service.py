@@ -19,13 +19,14 @@ class TestTTSEndpoints:
         with patch("tts_service.server.get_model_manager") as mock_manager:
             manager = Mock()
             manager.is_loaded = True
-            manager.info = Mock(
-                name="test-model",
-                device="cpu",
-                dtype="float32",
-                sample_rate=24000,
-                warmup_completed=True,
-            )
+            # Create a proper mock with attributes as values, not as Mock objects
+            info_mock = Mock()
+            info_mock.name = "test-model"
+            info_mock.device = "cpu"
+            info_mock.dtype = "float32"
+            info_mock.sample_rate = 24000
+            info_mock.warmup_completed = True
+            manager.info = info_mock
             mock_manager.return_value = manager
             
             # Mock synthesize to return a tensor

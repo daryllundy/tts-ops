@@ -5,12 +5,12 @@ from unittest.mock import MagicMock, patch
 sys.modules["prometheus_client"] = MagicMock()
 
 import pytest
-from src.common.metrics import record_gpu_metrics
+from common.metrics import record_gpu_metrics
 
 class TestMetrics:
     
-    @patch("src.common.metrics.is_mps_available")
-    @patch("src.common.metrics.TTS_GPU_MEMORY_USED")
+    @patch("common.metrics.is_mps_available")
+    @patch("common.metrics.TTS_GPU_MEMORY_USED")
     def test_record_gpu_metrics_mps(self, mock_gauge, mock_is_mps):
         """
         Property: MPS metrics collection
@@ -27,8 +27,8 @@ class TestMetrics:
             mock_gauge.labels.assert_called_with(device="mps")
             mock_gauge.labels.return_value.set.assert_called_with(1024)
 
-    @patch("src.common.metrics.is_mps_available")
-    @patch("src.common.metrics.TTS_GPU_MEMORY_USED")
+    @patch("common.metrics.is_mps_available")
+    @patch("common.metrics.TTS_GPU_MEMORY_USED")
     def test_record_gpu_metrics_cuda(self, mock_gauge, mock_is_mps):
         """
         Property: CUDA metrics collection
@@ -46,8 +46,8 @@ class TestMetrics:
             mock_gauge.labels.assert_called_with(device="cuda:0")
             mock_gauge.labels.return_value.set.assert_called_with(2048)
 
-    @patch("src.common.metrics.is_mps_available")
-    @patch("src.common.metrics.TTS_GPU_MEMORY_USED")
+    @patch("common.metrics.is_mps_available")
+    @patch("common.metrics.TTS_GPU_MEMORY_USED")
     def test_record_gpu_metrics_mps_failure(self, mock_gauge, mock_is_mps):
         """
         Property: MPS metrics collection failure handling

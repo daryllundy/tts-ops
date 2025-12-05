@@ -3,21 +3,28 @@ version: "3.8"
 services:
   tts:
     build:
-      context: ../..
+      context: .
       dockerfile: infra/docker/Dockerfile.tts
+      args:
+        - TARGETARCH=${TARGETARCH:-amd64}
     image: vibevoice-tts:dev
     container_name: vibevoice-tts
+    # Uncomment platform line to force specific architecture
+    # platform: linux/amd64  # or linux/arm64
     ports:
       - "8000:8000"
       - "9090:9090"
     environment:
       - TTS_MODEL_NAME=microsoft/VibeVoice-Realtime-0.5B
-      - TTS_DEVICE=cuda:0
+      # Use 'auto' for automatic device detection (CUDA/MPS/CPU)
+      - TTS_DEVICE=auto
       - TTS_WARMUP_ON_START=true
       - OBS_LOG_LEVEL=INFO
       - OBS_LOG_FORMAT=console
     volumes:
       - model-cache:/root/.cache/huggingface
+    # GPU configuration - only applies to x86_64 with NVIDIA GPU
+    # Comment out this section if running on Apple Silicon or CPU-only
     deploy:
       resources:
         reservations:
@@ -36,7 +43,7 @@ services:
 
   agent:
     build:
-      context: ../..
+      context: .
       dockerfile: infra/docker/Dockerfile.agent
     image: voice-agent:dev
     container_name: voice-agent

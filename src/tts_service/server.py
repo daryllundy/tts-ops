@@ -115,7 +115,7 @@ async def metrics() -> Response:
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
-@app.post("/synthesize", tags=["tts"])
+@app.post("/synthesize", tags=["tts"], response_model=None)
 async def synthesize(
     request: SynthesizeRequest,
     stream: Annotated[bool, Query(description="Stream audio response")] = False,

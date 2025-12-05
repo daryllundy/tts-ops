@@ -1,17 +1,12 @@
-import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 import pytest
-import torch
 
-from unittest.mock import MagicMock, patch
-import pytest
-import torch
-from src.common.device_utils import detect_best_device, is_mps_available, resolve_device
+from common.device_utils import detect_best_device, is_mps_available, resolve_device
 
 class TestDeviceUtils:
     
     @patch("torch.cuda.is_available")
-    @patch("src.common.device_utils.is_mps_available")
+    @patch("common.device_utils.is_mps_available")
     def test_detect_best_device_priority(self, mock_mps, mock_cuda):
         """
         Property: Automatic device selection priority (CUDA > MPS > CPU)
@@ -52,11 +47,11 @@ class TestDeviceUtils:
         # if the attribute exists. 
         # But to test the `hasattr` check, we need to mock `torch.backends` to NOT have `mps`.
         
-        with patch("src.common.device_utils.torch.backends", spec=[]) as mock_backends:
+        with patch("common.device_utils.torch.backends", spec=[]) as mock_backends:
             # spec=[] means it has no attributes, so hasattr(..., "mps") will be False
             assert is_mps_available() is False
 
-    @patch("src.common.device_utils.detect_best_device")
+    @patch("common.device_utils.detect_best_device")
     def test_resolve_device_auto(self, mock_detect):
         """
         Property: 'auto' resolves to best detected device
@@ -84,7 +79,7 @@ class TestDeviceUtils:
         with pytest.raises(ValueError, match="Device 'cuda:0' requested but CUDA is not available"):
             resolve_device("cuda:0")
 
-    @patch("src.common.device_utils.is_mps_available")
+    @patch("common.device_utils.is_mps_available")
     def test_resolve_device_mps(self, mock_mps):
         """
         Property: Explicit MPS request validation

@@ -2,8 +2,8 @@ import sys
 from unittest.mock import MagicMock, patch
 import pytest
 import torch
-from src.tts_service.model_loader import TTSModelManager, ModelInfo
-from src.common.config import TTSServiceSettings
+from tts_service.model_loader import TTSModelManager, ModelInfo
+from common.config import TTSServiceSettings
 
 class TestTTSModelManager:
     
@@ -19,7 +19,7 @@ class TestTTSModelManager:
     def manager(self, mock_settings):
         return TTSModelManager(settings=mock_settings)
 
-    @patch("src.tts_service.model_loader.resolve_device")
+    @patch("tts_service.model_loader.resolve_device")
     def test_load_device_resolution_and_logging(self, mock_resolve, manager):
         """
         Property: Device selection logging and resolution
@@ -35,7 +35,7 @@ class TestTTSModelManager:
         mock_transformers.AutoModelForTextToWaveform.from_pretrained.return_value = mock_model
         
         with patch.dict(sys.modules, {"transformers": mock_transformers}):
-            with patch("src.tts_service.model_loader.logger") as mock_logger:
+            with patch("tts_service.model_loader.logger") as mock_logger:
                 manager.load()
                 
                 # Verify resolve_device was called
@@ -81,7 +81,7 @@ class TestTTSModelManager:
     @patch("torch.cuda.empty_cache")
     @patch("torch.cuda.is_available")
     @patch("torch.mps.empty_cache")
-    @patch("src.tts_service.model_loader.is_mps_available")
+    @patch("tts_service.model_loader.is_mps_available")
     def test_clear_device_cache(self, mock_is_mps, mock_mps_empty, mock_cuda_avail, mock_cuda_empty, manager):
         """
         Property: Backend-specific cache clearing
@@ -106,7 +106,7 @@ class TestTTSModelManager:
     @patch("torch.cuda.synchronize")
     @patch("torch.cuda.is_available")
     @patch("torch.mps.synchronize")
-    @patch("src.tts_service.model_loader.is_mps_available")
+    @patch("tts_service.model_loader.is_mps_available")
     def test_synchronize_device(self, mock_is_mps, mock_mps_sync, mock_cuda_avail, mock_cuda_sync, manager):
         """
         Property: Backend-specific synchronization
@@ -129,7 +129,7 @@ class TestTTSModelManager:
         mock_mps_sync.assert_called_once()
         mock_cuda_sync.assert_not_called()
 
-    @patch("src.tts_service.model_loader.TTSModelManager.synthesize")
+    @patch("tts_service.model_loader.TTSModelManager.synthesize")
     def test_warmup_success(self, mock_synthesize, manager):
         """
         Property: Warmup cross-platform success

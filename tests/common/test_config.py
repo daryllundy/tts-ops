@@ -1,11 +1,7 @@
-import sys
-from unittest.mock import MagicMock, patch
-
-from unittest.mock import MagicMock, patch
-from src.common.config import TTSServiceSettings
-
 import pytest
 from pydantic import ValidationError
+
+from common.config import TTSServiceSettings
 
 class TestConfig:
     
@@ -22,11 +18,11 @@ class TestConfig:
         """
         Property: Configuration validation consistency - Invalid inputs
         """
-        invalid_devices = ["invalid", "gpu", ""]
+        invalid_devices = ["invalid", "gpu", "", "cuda:", "cuda:abc", "cuda:-1"]
         for device in invalid_devices:
             with pytest.raises(ValidationError) as excinfo:
                 TTSServiceSettings(device=device)
-            assert "Device must be 'auto', 'cpu', 'mps', or 'cuda:N'" in str(excinfo.value)
+            assert "Device must be" in str(excinfo.value)
 
     def test_default_auto_selection(self):
         """

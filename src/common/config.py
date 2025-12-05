@@ -33,9 +33,20 @@ class TTSServiceSettings(BaseSettings):
     @field_validator("device")
     @classmethod
     def validate_device(cls, v: str) -> str:
-        if v == "auto" or v == "mps" or v == "cpu" or v.startswith("cuda"):
+        if v in ("auto", "mps", "cpu"):
             return v
-        raise ValueError("Device must be 'auto', 'cpu', 'mps', or 'cuda:N'")
+        
+        # Validate CUDA device format: cuda:N where N is a non-negative integer
+        if v.startswith("cuda:"):
+            try:
+                device_id = v.split(":", 1)[1]
+                device_num = int(device_id)
+                if device_num >= 0:
+                    return v
+            except (ValueError, IndexError):
+                pass
+        
+        raise ValueError("Device must be 'auto', 'cpu', 'mps', or 'cuda:N' where N is a non-negative integer")
 
 
 class AgentServiceSettings(BaseSettings):
