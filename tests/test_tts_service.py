@@ -397,10 +397,13 @@ class TestModelManager:
 
     def test_load_model_success(self):
         """Test successful model loading."""
-        # Patch where the imports happen (transformers module), not the importing module
+        # Patch transformers in sys.modules to handle local import
+        mock_transformers = MagicMock()
+        mock_processor_cls = mock_transformers.AutoProcessor
+        mock_model_cls = mock_transformers.AutoModelForTextToWaveform
+
         with patch("tts_service.model_loader.get_tts_settings") as mock_settings, \
-             patch("transformers.AutoProcessor") as mock_processor, \
-             patch("transformers.AutoModelForTextToWaveform") as mock_model:
+             patch.dict("sys.modules", {"transformers": mock_transformers}):
 
             mock_settings.return_value = Mock(
                 model_name="test-model",
@@ -414,10 +417,10 @@ class TestModelManager:
 
             # Mock the model and processor
             mock_processor_instance = Mock()
-            mock_processor.from_pretrained.return_value = mock_processor_instance
+            mock_processor_cls.from_pretrained.return_value = mock_processor_instance
 
             mock_model_instance = Mock()
-            mock_model.from_pretrained.return_value = mock_model_instance
+            mock_model_cls.from_pretrained.return_value = mock_model_instance
 
             manager = TTSModelManager()
             manager.load()
@@ -429,10 +432,13 @@ class TestModelManager:
 
     def test_load_model_with_warmup(self):
         """Test model loading with warmup enabled."""
-        # Patch where the imports happen (transformers module), not the importing module
+        # Patch transformers in sys.modules
+        mock_transformers = MagicMock()
+        mock_processor_cls = mock_transformers.AutoProcessor
+        mock_model_cls = mock_transformers.AutoModelForTextToWaveform
+
         with patch("tts_service.model_loader.get_tts_settings") as mock_settings, \
-             patch("transformers.AutoProcessor") as mock_processor, \
-             patch("transformers.AutoModelForTextToWaveform") as mock_model:
+             patch.dict("sys.modules", {"transformers": mock_transformers}):
 
             mock_settings.return_value = Mock(
                 model_name="test-model",
@@ -445,12 +451,12 @@ class TestModelManager:
             )
 
             mock_processor_instance = Mock()
-            mock_processor.from_pretrained.return_value = mock_processor_instance
+            mock_processor_cls.from_pretrained.return_value = mock_processor_instance
             mock_processor_instance.return_value.to.return_value = {"input_ids": torch.tensor([[1, 2, 3]])}
 
             mock_model_instance = Mock()
             mock_model_instance.generate.return_value = torch.randn(24000)
-            mock_model.from_pretrained.return_value = mock_model_instance
+            mock_model_cls.from_pretrained.return_value = mock_model_instance
 
             manager = TTSModelManager()
             manager.load()
