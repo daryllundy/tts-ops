@@ -1,7 +1,7 @@
 """HTTP client for TTS service communication."""
 
 import asyncio
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 import httpx
 from tenacity import (

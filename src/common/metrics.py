@@ -1,6 +1,7 @@
 """Prometheus metrics definitions and utilities."""
 
 from prometheus_client import Counter, Gauge, Histogram, Info
+
 from common.device_utils import is_mps_available
 
 # TTS Service Metrics
@@ -104,7 +105,7 @@ def record_gpu_metrics(device: str = "cuda:0") -> None:
                 TTS_GPU_UTILIZATION.labels(device=device).set(util.gpu)
             except ImportError:
                 pass
-        
+
         elif device == "mps" and is_mps_available():
             # MPS metrics are limited, but we can get memory usage
             try:

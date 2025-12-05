@@ -1,7 +1,7 @@
 """LLM client abstraction supporting multiple providers."""
 
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from common.config import AgentServiceSettings, get_agent_settings
 from common.logging import get_logger
@@ -43,8 +43,8 @@ class AnthropicClient(LLMClient):
                 from anthropic import AsyncAnthropic
 
                 self._client = AsyncAnthropic()
-            except ImportError:
-                raise RuntimeError("anthropic package not installed. Install with: pip install anthropic")
+            except ImportError as e:
+                raise RuntimeError("anthropic package not installed. Install with: pip install anthropic") from e
         return self._client
 
     async def generate(
@@ -94,8 +94,8 @@ class OpenAIClient(LLMClient):
                 from openai import AsyncOpenAI
 
                 self._client = AsyncOpenAI()
-            except ImportError:
-                raise RuntimeError("openai package not installed. Install with: pip install openai")
+            except ImportError as e:
+                raise RuntimeError("openai package not installed. Install with: pip install openai") from e
         return self._client
 
     async def generate(

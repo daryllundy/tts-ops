@@ -1,9 +1,10 @@
 """Unit tests for WebSocket endpoint."""
 
+import json
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, Mock, patch
-import json
 
 from agent_app.api import app
 

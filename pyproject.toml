@@ -87,6 +87,8 @@ packages = ["src/agent_app", "src/tts_service", "src/common"]
 [tool.ruff]
 target-version = "py311"
 line-length = 100
+
+[tool.ruff.lint]
 select = [
     "E",    # pycodestyle errors
     "W",    # pycodestyle warnings
@@ -102,10 +104,15 @@ ignore = [
     "E501",   # line too long (handled by formatter)
     "B008",   # function call in default argument
     "B905",   # zip strict
+    "SIM102", # collapsible-if (style preference)
+    "SIM117", # multiple-with-statements (style preference)
+    "E402",   # module-import-not-at-top-of-file (needed for test path manipulation)
 ]
 
-[tool.ruff.per-file-ignores]
-"tests/**/*" = ["ARG001"]
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*" = ["ARG001", "ARG002"]
+"scripts/**/*" = ["ARG001"]
+"src/**/*" = ["ARG001", "ARG002"]
 
 [tool.mypy]
 python_version = "3.11"

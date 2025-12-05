@@ -1,12 +1,13 @@
 """Integration tests for TTS and Agent services."""
 
-import pytest
-from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock, Mock, patch
-import torch
 
-from tts_service.server import app as tts_app
+import pytest
+import torch
+from fastapi.testclient import TestClient
+
 from agent_app.api import app as agent_app
+from tts_service.server import app as tts_app
 
 
 class TestTTSIntegration:

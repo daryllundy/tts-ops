@@ -1,12 +1,13 @@
 """Unit tests for TTS service."""
 
-import pytest
-from fastapi.testclient import TestClient
-from unittest.mock import Mock, patch, MagicMock
-import torch
+from unittest.mock import Mock, patch
 
-from tts_service.server import app
+import pytest
+import torch
+from fastapi.testclient import TestClient
+
 from tts_service.model_loader import TTSModelManager
+from tts_service.server import app
 from tts_service.streaming import tensor_to_pcm_bytes, tensor_to_wav_bytes
 
 
@@ -28,10 +29,10 @@ class TestTTSEndpoints:
             info_mock.warmup_completed = True
             manager.info = info_mock
             mock_manager.return_value = manager
-            
+
             # Mock synthesize to return a tensor
             manager.synthesize.return_value = torch.randn(24000)
-            
+
             yield TestClient(app, raise_server_exceptions=False)
 
     def test_health_check_healthy(self, client):
@@ -49,7 +50,7 @@ class TestTTSEndpoints:
             manager.is_loaded = False
             manager.info = None
             mock_manager.return_value = manager
-            
+
             with TestClient(app, raise_server_exceptions=False) as client:
                 response = client.get("/health")
                 assert response.status_code == 200

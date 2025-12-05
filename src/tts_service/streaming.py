@@ -3,8 +3,8 @@
 import asyncio
 import io
 import struct
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
-from typing import AsyncGenerator
 
 import numpy as np
 import soundfile as sf

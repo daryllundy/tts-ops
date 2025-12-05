@@ -1,15 +1,18 @@
 """FastAPI application for voice agent service."""
 
+import builtins
 import time
-from contextlib import asynccontextmanager
-from typing import Annotated, AsyncGenerator
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager, suppress
+from typing import Annotated
 
-from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
-from fastapi import Response
 from pydantic import BaseModel, Field
 
+from agent_app.llm_client import get_llm_client
+from agent_app.tts_client import TTSClientError, get_tts_client
 from common.config import get_agent_settings, get_observability_settings
 from common.logging import get_logger, setup_logging
 from common.metrics import (
@@ -18,8 +21,6 @@ from common.metrics import (
     AGENT_LLM_DURATION,
     AGENT_REQUESTS_TOTAL,
 )
-from agent_app.llm_client import get_llm_client
-from agent_app.tts_client import TTSClient, TTSClientError, get_tts_client
 
 logger = get_logger(__name__)
 
@@ -218,7 +219,7 @@ async def websocket_chat(websocket: WebSocket) -> None:
     await websocket.accept()
     AGENT_ACTIVE_CONNECTIONS.inc()
 
-    settings = get_agent_settings()
+    get_agent_settings()
     llm_client = get_llm_client()
     tts_client = get_tts_client()
 
@@ -255,10 +256,8 @@ async def websocket_chat(websocket: WebSocket) -> None:
         logger.info("WebSocket client disconnected")
     except Exception as e:
         logger.exception("WebSocket error", error=str(e))
-        try:
+        with suppress(builtins.BaseException):
             await websocket.send_json({"type": "error", "message": str(e)})
-        except:
-            pass
     finally:
         AGENT_ACTIVE_CONNECTIONS.dec()
 

@@ -14,9 +14,8 @@ import argparse
 import json
 import sys
 import time
-import urllib.request
 import urllib.error
-from typing import Any
+import urllib.request
 
 
 def check_health(url: str, timeout: int = 5) -> bool:
@@ -42,7 +41,7 @@ def test_tts_synthesis(url: str, text: str = "Hello world", timeout: int = 10) -
         "model": "tts-1",
         "response_format": "mp3"
     }
-    
+
     try:
         data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(
@@ -51,14 +50,14 @@ def test_tts_synthesis(url: str, text: str = "Hello world", timeout: int = 10) -
             headers={"Content-Type": "application/json"},
             method="POST"
         )
-        
+
         with urllib.request.urlopen(req, timeout=timeout) as response:
             if response.status == 200:
                 # Verify we got some audio data back
                 content = response.read()
                 return len(content) > 0
             return False
-            
+
     except (urllib.error.URLError, OSError) as e:
         print(f"Synthesis test failed: {e}", file=sys.stderr)
         return False
@@ -71,11 +70,11 @@ def main() -> None:
     parser.add_argument("--retries", type=int, default=3, help="Number of retries for health check")
     parser.add_argument("--timeout", type=int, default=5, help="Timeout in seconds for requests")
     parser.add_argument("--delay", type=int, default=2, help="Delay between retries in seconds")
-    
+
     args = parser.parse_args()
-    
+
     print(f"Starting smoke tests against {args.url}...")
-    
+
     # 1. Health Check with retries
     print("Checking service health...")
     health_passed = False
@@ -86,11 +85,11 @@ def main() -> None:
             break
         print(f"Health check attempt {i+1}/{args.retries} failed. Retrying in {args.delay}s...")
         time.sleep(args.delay)
-    
+
     if not health_passed:
         print("❌ Health check failed after all retries")
         sys.exit(1)
-        
+
     # 2. Functional Test (Synthesis)
     print("Testing TTS synthesis...")
     if test_tts_synthesis(args.url, timeout=args.timeout):
@@ -98,7 +97,7 @@ def main() -> None:
     else:
         print("❌ TTS synthesis failed")
         sys.exit(1)
-        
+
     print("\nAll smoke tests passed! 🚀")
     sys.exit(0)
 

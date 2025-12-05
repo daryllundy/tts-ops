@@ -8,24 +8,22 @@ missing environment variables, field validation, and JSON output format.
 import json
 import os
 import sys
-from pathlib import Path
-from unittest.mock import patch, MagicMock
 import tempfile
-
-import pytest
+from pathlib import Path
+from unittest.mock import patch
 
 # Add scripts directory to path
 scripts_dir = Path(__file__).parent.parent.parent / "scripts"
 sys.path.insert(0, str(scripts_dir))
 
 from generate_build_metadata import (
+    REQUIRED_FIELDS,
+    extract_git_ref,
+    extract_git_sha,
+    extract_platform,
+    extract_workflow_run_id,
     generate_build_metadata,
     save_metadata,
-    extract_git_sha,
-    extract_git_ref,
-    extract_workflow_run_id,
-    extract_platform,
-    REQUIRED_FIELDS,
 )
 
 
@@ -38,11 +36,11 @@ class TestMissingEnvironmentVariables:
             "GITHUB_REF": "refs/heads/main",
             "GITHUB_RUN_ID": "123456",
         }
-        
+
         with patch.dict(os.environ, env, clear=True):
             with patch("subprocess.run", side_effect=FileNotFoundError):
                 metadata = generate_build_metadata()
-                
+
                 assert not metadata.is_valid()
                 assert any("git_sha" in error.lower() for error in metadata.errors)
 
@@ -52,11 +50,11 @@ class TestMissingEnvironmentVariables:
             "GITHUB_SHA": "abc123def456",
             "GITHUB_RUN_ID": "123456",
         }
-        
+
         with patch.dict(os.environ, env, clear=True):
             with patch("subprocess.run", side_effect=FileNotFoundError):
                 metadata = generate_build_metadata()
-                
+
                 assert not metadata.is_valid()
                 assert any("git_ref" in error.lower() for error in metadata.errors)
 
@@ -66,10 +64,10 @@ class TestMissingEnvironmentVariables:
             "GITHUB_SHA": "abc123def456",
             "GITHUB_REF": "refs/heads/main",
         }
-        
+
         with patch.dict(os.environ, env, clear=True):
             metadata = generate_build_metadata()
-            
+
             assert not metadata.is_valid()
             assert any("workflow_run_id" in error.lower() for error in metadata.errors)
 
@@ -78,7 +76,7 @@ class TestMissingEnvironmentVariables:
         with patch.dict(os.environ, {}, clear=True):
             with patch("subprocess.run", side_effect=FileNotFoundError):
                 metadata = generate_build_metadata()
-                
+
                 assert not metadata.is_valid()
                 assert len(metadata.errors) >= 3  # At least git_sha, git_ref, workflow_run_id
 
@@ -93,13 +91,13 @@ class TestFieldValidation:
             "GITHUB_REF": "refs/heads/main",
             "GITHUB_RUN_ID": "123456",
         }
-        
+
         with patch.dict(os.environ, env, clear=False):
             metadata = generate_build_metadata()
-            
+
             assert metadata.is_valid()
             metadata_dict = metadata.to_dict()
-            
+
             for field in REQUIRED_FIELDS:
                 assert field in metadata_dict
                 assert metadata_dict[field] is not None
@@ -111,14 +109,14 @@ class TestFieldValidation:
             "GITHUB_REF": "refs/heads/main",
             "GITHUB_RUN_ID": "123456",
         }
-        
+
         with patch.dict(os.environ, env, clear=False):
             # Generate without optional fields
             metadata = generate_build_metadata()
-            
+
             # Should still be valid
             assert metadata.is_valid()
-            
+
             # Should have warnings about missing optional fields
             assert len(metadata.warnings) > 0
 
@@ -129,10 +127,10 @@ class TestFieldValidation:
             "GITHUB_REF": "refs/heads/main",
             "GITHUB_RUN_ID": "123456",
         }
-        
+
         with patch.dict(os.environ, env, clear=False):
             metadata = generate_build_metadata(image="ghcr.io/org/app:v1.0.0")
-            
+
             assert metadata.is_valid()
             assert metadata.to_dict()["image"] == "ghcr.io/org/app:v1.0.0"
 
@@ -143,10 +141,10 @@ class TestFieldValidation:
             "GITHUB_REF": "refs/heads/main",
             "GITHUB_RUN_ID": "123456",
         }
-        
+
         with patch.dict(os.environ, env, clear=False):
             metadata = generate_build_metadata(digest="sha256:abc123")
-            
+
             assert metadata.is_valid()
             assert metadata.to_dict()["digest"] == "sha256:abc123"
 
@@ -157,10 +155,10 @@ class TestFieldValidation:
             "GITHUB_REF": "refs/heads/main",
             "GITHUB_RUN_ID": "123456",
         }
-        
+
         with patch.dict(os.environ, env, clear=False):
             metadata = generate_build_metadata(platform="linux/amd64")
-            
+
             assert metadata.is_valid()
             assert metadata.to_dict()["platform"] == "linux/amd64"
 
@@ -175,10 +173,10 @@ class TestJSONOutputFormat:
             "GITHUB_REF": "refs/heads/main",
             "GITHUB_RUN_ID": "123456",
         }
-        
+
         with patch.dict(os.environ, env, clear=False):
             metadata = generate_build_metadata()
-            
+
             # Should not raise exception
             json_str = json.dumps(metadata.to_dict())
             assert json_str is not None
@@ -190,13 +188,13 @@ class TestJSONOutputFormat:
             "GITHUB_REF": "refs/heads/main",
             "GITHUB_RUN_ID": "123456",
         }
-        
+
         with patch.dict(os.environ, env, clear=False):
             metadata = generate_build_metadata()
-            
+
             json_str = json.dumps(metadata.to_dict())
             deserialized = json.loads(json_str)
-            
+
             # Verify all required fields are preserved
             for field in REQUIRED_FIELDS:
                 assert field in deserialized
@@ -208,21 +206,21 @@ class TestJSONOutputFormat:
             "GITHUB_REF": "refs/heads/main",
             "GITHUB_RUN_ID": "123456",
         }
-        
+
         with patch.dict(os.environ, env, clear=False):
             metadata = generate_build_metadata()
-            
+
             with tempfile.TemporaryDirectory() as tmpdir:
                 output_path = Path(tmpdir) / "metadata.json"
                 save_metadata(output_path, metadata)
-                
+
                 # Verify file exists
                 assert output_path.exists()
-                
+
                 # Verify file contains valid JSON
-                with open(output_path, "r") as f:
+                with open(output_path) as f:
                     loaded = json.load(f)
-                
+
                 # Verify all required fields are present
                 for field in REQUIRED_FIELDS:
                     assert field in loaded
@@ -234,18 +232,18 @@ class TestJSONOutputFormat:
             "GITHUB_REF": "refs/heads/main",
             "GITHUB_RUN_ID": "123456",
         }
-        
+
         with patch.dict(os.environ, env, clear=False):
             metadata = generate_build_metadata()
-            
+
             with tempfile.TemporaryDirectory() as tmpdir:
                 output_path = Path(tmpdir) / "metadata.json"
                 save_metadata(output_path, metadata)
-                
+
                 # Read file content
-                with open(output_path, "r") as f:
+                with open(output_path) as f:
                     content = f.read()
-                
+
                 # Verify it's formatted (has newlines and indentation)
                 assert "\n" in content
                 assert "  " in content  # Indentation
@@ -305,10 +303,10 @@ class TestBuilderField:
             "GITHUB_REF": "refs/heads/main",
             "GITHUB_RUN_ID": "123456",
         }
-        
+
         with patch.dict(os.environ, env, clear=False):
             metadata = generate_build_metadata()
-            
+
             assert metadata.to_dict()["builder"] == "github-actions"
 
     def test_custom_builder_from_environment(self):
@@ -319,10 +317,10 @@ class TestBuilderField:
             "GITHUB_RUN_ID": "123456",
             "BUILDER": "custom-builder",
         }
-        
+
         with patch.dict(os.environ, env, clear=False):
             metadata = generate_build_metadata()
-            
+
             assert metadata.to_dict()["builder"] == "custom-builder"
 
 
@@ -336,15 +334,15 @@ class TestBuildTimestamp:
             "GITHUB_REF": "refs/heads/main",
             "GITHUB_RUN_ID": "123456",
         }
-        
+
         with patch.dict(os.environ, env, clear=False):
             metadata = generate_build_metadata()
-            
+
             timestamp = metadata.to_dict()["build_timestamp"]
-            
+
             # Should contain 'T' separator
             assert "T" in timestamp
-            
+
             # Should be UTC (ends with Z or +00:00)
             assert timestamp.endswith("Z") or timestamp.endswith("+00:00")
 
@@ -353,6 +351,6 @@ class TestBuildTimestamp:
         with patch.dict(os.environ, {}, clear=True):
             with patch("subprocess.run", side_effect=FileNotFoundError):
                 metadata = generate_build_metadata()
-                
+
                 # Even though metadata is invalid, timestamp should be present
                 assert "build_timestamp" in metadata.to_dict()

@@ -35,7 +35,7 @@ class TTSServiceSettings(BaseSettings):
     def validate_device(cls, v: str) -> str:
         if v in ("auto", "mps", "cpu"):
             return v
-        
+
         # Validate CUDA device format: cuda:N where N is a non-negative integer
         if v.startswith("cuda:"):
             try:
@@ -45,7 +45,7 @@ class TTSServiceSettings(BaseSettings):
                     return v
             except (ValueError, IndexError):
                 pass
-        
+
         raise ValueError("Device must be 'auto', 'cpu', 'mps', or 'cuda:N' where N is a non-negative integer")
 
 

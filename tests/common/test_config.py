@@ -3,8 +3,9 @@ from pydantic import ValidationError
 
 from common.config import TTSServiceSettings
 
+
 class TestConfig:
-    
+
     def test_device_validation_valid(self):
         """
         Property: Configuration validation consistency - Valid inputs
@@ -39,7 +40,7 @@ class TestConfig:
         monkeypatch.setenv("TTS_DEVICE", "mps")
         settings = TTSServiceSettings()
         assert settings.device == "mps"
-        
+
         monkeypatch.setenv("TTS_DEVICE", "cpu")
         settings = TTSServiceSettings()
         assert settings.device == "cpu"

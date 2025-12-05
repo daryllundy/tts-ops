@@ -1,8 +1,9 @@
 """Unit tests for agent service."""
 
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, Mock, patch
 
 from agent_app.api import app
 from agent_app.tts_client import TTSClient, TTSClientError, TTSServiceUnavailable
@@ -16,16 +17,16 @@ class TestAgentEndpoints:
         """Create mocked LLM and TTS clients."""
         with patch("agent_app.api.get_llm_client") as mock_llm, \
              patch("agent_app.api.get_tts_client") as mock_tts:
-            
+
             llm_client = AsyncMock()
             llm_client.generate.return_value = "Hello! How can I help you?"
             mock_llm.return_value = llm_client
-            
+
             tts_client = AsyncMock()
             tts_client.health_check.return_value = True
             tts_client.synthesize.return_value = b"fake-audio-data"
             mock_tts.return_value = tts_client
-            
+
             yield {"llm": llm_client, "tts": tts_client}
 
     @pytest.fixture
@@ -63,7 +64,7 @@ class TestAgentEndpoints:
     def test_chat_llm_error(self, client, mock_clients):
         """Test chat when LLM fails."""
         mock_clients["llm"].generate.side_effect = Exception("LLM error")
-        
+
         response = client.post(
             "/chat",
             json={"text": "Hello", "include_audio": False},
@@ -126,7 +127,6 @@ class TestAgentEndpoints:
 
     def test_chat_tts_unavailable(self, client, mock_clients):
         """Test chat when TTS service is unavailable in streaming mode."""
-        from agent_app.tts_client import TTSServiceUnavailable
 
         # TTS is only called when stream=true AND include_audio=true
         async def mock_streaming_error(text, voice_id=None):
@@ -152,7 +152,6 @@ class TestAgentEndpoints:
 
     def test_synthesize_tts_error(self, client, mock_clients):
         """Test synthesis when TTS client fails."""
-        from agent_app.tts_client import TTSClientError
 
         mock_clients["tts"].synthesize.side_effect = TTSClientError("TTS failed")
 
@@ -296,7 +295,6 @@ class TestTTSClient:
     @pytest.mark.asyncio
     async def test_synthesize_service_unavailable(self, client):
         """Test synthesis when service returns 503."""
-        from agent_app.tts_client import TTSServiceUnavailable
 
         with patch.object(client, "_client") as mock_http:
             mock_response = Mock()
@@ -323,7 +321,6 @@ class TestTTSClient:
     @pytest.mark.asyncio
     async def test_synthesize_connection_error(self, client):
         """Test synthesis with connection error."""
-        from agent_app.tts_client import TTSServiceUnavailable
         import httpx
 
         with patch.object(client, "_client") as mock_http:
@@ -365,7 +362,6 @@ class TestTTSClient:
     @pytest.mark.asyncio
     async def test_synthesize_streaming_error(self, client):
         """Test streaming synthesis with error."""
-        from agent_app.tts_client import TTSServiceUnavailable
         import httpx
 
         with patch.object(client, "_client") as mock_http:
