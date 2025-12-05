@@ -37,10 +37,10 @@ jobs:
         run: |
           # Start TTS service in background for consistent benchmarking
           # Using CPU mode for reproducibility across runners
-          python -m src.tts_service.server &
+          python -m tts_service.server &
           TTS_PID=$!
           echo "TTS_PID=$TTS_PID" >> $GITHUB_ENV
-          
+
           # Wait for service to be ready
           echo "Waiting for TTS service to start..."
           for i in {1..30}; do
