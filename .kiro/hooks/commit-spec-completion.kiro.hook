@@ -1,0 +1,22 @@
+{
+  "enabled": false,
+  "name": "Commit on Spec tasks Completion",
+  "description": "Automatically commits changes to git when sub tasks are completed, ensuring work is saved and tracked",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "*.md",
+      "CICD.md",
+      "TESTING.md",
+      "NOTES.md",
+      "CLAUDE.md"
+    ]
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "git add -A && git commit -m \"Auto-commit: Spec task completed\""
+  },
+  "workspaceFolderName": "tts-ops",
+  "shortName": "commit-spec-completion"
+}
