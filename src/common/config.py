@@ -16,7 +16,7 @@ class TTSServiceSettings(BaseSettings):
         default="microsoft/VibeVoice-Realtime-0.5B",
         description="HuggingFace model identifier for VibeVoice",
     )
-    device: str = Field(default="cuda:0", description="Inference device (cuda:N or cpu)")
+    device: str = Field(default="auto", description="Inference device (auto, cuda:N, mps, or cpu)")
     max_batch_size: int = Field(default=4, ge=1, le=16, description="Maximum inference batch size")
     max_text_length: int = Field(default=4096, ge=100, description="Maximum input text length")
     sample_rate: int = Field(default=24000, description="Audio output sample rate")
@@ -33,9 +33,9 @@ class TTSServiceSettings(BaseSettings):
     @field_validator("device")
     @classmethod
     def validate_device(cls, v: str) -> str:
-        if not (v.startswith("cuda") or v == "cpu"):
-            raise ValueError("Device must be 'cpu' or 'cuda:N'")
-        return v
+        if v == "auto" or v == "mps" or v == "cpu" or v.startswith("cuda"):
+            return v
+        raise ValueError("Device must be 'auto', 'cpu', 'mps', or 'cuda:N'")
 
 
 class AgentServiceSettings(BaseSettings):

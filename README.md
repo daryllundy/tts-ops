@@ -61,7 +61,35 @@ curl -X POST http://localhost:8080/chat \
 
 ```bash
 docker-compose up -d
+docker-compose up -d
 ```
+
+### Running on Apple Silicon
+
+The service supports GPU acceleration on Apple Silicon (M1/M2/M3) via Metal Performance Shaders (MPS).
+
+1. **Prerequisites**: macOS 12.3+ and Python 3.11+
+2. **Installation**:
+   ```bash
+   pip install -e ".[dev]"
+   ```
+3. **Configuration**:
+   The service automatically detects the best available device (`cuda` > `mps` > `cpu`).
+   To verify MPS usage, check the logs on startup:
+   ```
+   INFO:     Resolved device configuration configured_device='auto' resolved_device='mps' dtype='torch.float16'
+   ```
+   You can also force MPS usage:
+   ```bash
+   export TTS_DEVICE=mps
+   ./scripts/run_local_tts.sh
+   ```
+4. **Performance**:
+   MPS provides significant speedup over CPU but may be slower than high-end NVIDIA GPUs.
+   If you encounter issues, you can fallback to CPU:
+   ```bash
+   export TTS_DEVICE=cpu
+   ```
 
 ### Kubernetes Deployment
 
@@ -80,7 +108,7 @@ helm upgrade --install voice-agent ./infra/k8s/helm/voice-agent \
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `TTS_MODEL_NAME` | HuggingFace model identifier | `microsoft/VibeVoice-Realtime-0.5B` |
-| `TTS_DEVICE` | Inference device | `cuda:0` |
+| `TTS_DEVICE` | Inference device (`auto`, `cuda:N`, `mps`, `cpu`) | `auto` |
 | `TTS_MAX_BATCH_SIZE` | Maximum batch size for inference | `4` |
 | `LLM_PROVIDER` | LLM backend (`openai`, `anthropic`, `local`) | `anthropic` |
 | `LLM_MODEL` | Model name for LLM | `claude-sonnet-4-20250514` |

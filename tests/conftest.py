@@ -1,28 +1,12 @@
-"""Pytest configuration and fixtures."""
-
-import pytest
 import sys
-from pathlib import Path
+from unittest.mock import MagicMock
 
-# Add src to path for imports
-src_path = Path(__file__).parent.parent / "src"
-sys.path.insert(0, str(src_path))
+# Mock prometheus_client globally to avoid Duplicated timeseries errors
+# and side effects from metrics collection during tests.
+sys.modules["prometheus_client"] = MagicMock()
 
-
-@pytest.fixture(scope="session")
-def anyio_backend():
-    """Configure async backend for pytest-asyncio."""
-    return "asyncio"
-
-
-@pytest.fixture
-def sample_audio_tensor():
-    """Create sample audio tensor for testing."""
-    import torch
-    return torch.randn(24000)  # 1 second at 24kHz
-
-
-@pytest.fixture
-def sample_text():
-    """Sample text for TTS testing."""
-    return "Hello, this is a test message."
+# Also mock src.common.metrics to avoid side effects if needed,
+# but mocking prometheus_client should be enough to stop errors.
+# However, if we want to test metrics collection, we need to be careful.
+# test_metrics.py mocks prometheus_client too.
+# If we mock it here, it persists.

@@ -8,6 +8,7 @@ from typing import Any, Generator
 import torch
 
 from common.config import TTSServiceSettings, get_tts_settings
+from common.device_utils import resolve_device, is_mps_available
 from common.logging import get_logger
 from common.metrics import TTS_MODEL_INFO, TTS_MODEL_LOADED
 
@@ -46,6 +47,55 @@ class TTSModelManager:
         """Get model information."""
         return self._info
 
+    def _resolve_device(self) -> str:
+        """Resolve the configured device to a concrete device string."""
+        return resolve_device(self.settings.device)
+
+    def _get_optimal_dtype(self, device: str) -> torch.dtype:
+        """
+        Get the optimal dtype for the given device.
+        
+        Args:
+            device: The resolved device string.
+            
+        Returns:
+            torch.dtype: The optimal dtype.
+        """
+        # Respect configured dtype if possible, but adjust for device limitations
+        requested_dtype = self.settings.dtype
+        
+        if device == "mps":
+            # MPS has limited float16 support, often better to use float32 for stability
+            # unless specifically requested and known to work.
+            # For this model, let's default to float32 on MPS if float16 was requested
+            # to avoid potential "Op not implemented" errors, unless we are sure.
+            # However, user might want to force float16.
+            # Let's log a warning if float16 is used on MPS.
+            if requested_dtype == "float16":
+                logger.debug("Using float16 on MPS, ensure model supports it.")
+                return torch.float16
+        
+        dtype_map = {
+            "float16": torch.float16,
+            "bfloat16": torch.bfloat16,
+            "float32": torch.float32,
+        }
+        return dtype_map[requested_dtype]
+
+    def _clear_device_cache(self) -> None:
+        """Clear device memory cache for the current backend."""
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        if is_mps_available():
+            torch.mps.empty_cache()
+
+    def _synchronize_device(self) -> None:
+        """Synchronize the current device backend."""
+        if self.settings.device.startswith("cuda") and torch.cuda.is_available():
+            torch.cuda.synchronize()
+        elif self.settings.device == "mps" and is_mps_available():
+            torch.mps.synchronize()
+
     def load(self) -> None:
         """Load the TTS model into memory."""
         if self._model is not None:
@@ -65,12 +115,15 @@ class TTSModelManager:
             # Import here to avoid loading torch at module import time
             from transformers import AutoProcessor, AutoModelForTextToWaveform
 
-            dtype_map = {
-                "float16": torch.float16,
-                "bfloat16": torch.bfloat16,
-                "float32": torch.float32,
-            }
-            torch_dtype = dtype_map[self.settings.dtype]
+            resolved_device = self._resolve_device()
+            torch_dtype = self._get_optimal_dtype(resolved_device)
+            
+            logger.info(
+                "Resolved device configuration",
+                configured_device=self.settings.device,
+                resolved_device=resolved_device,
+                dtype=str(torch_dtype),
+            )
 
             self._processor = AutoProcessor.from_pretrained(
                 self.settings.model_name,
@@ -84,15 +137,15 @@ class TTSModelManager:
                 cache_dir=self.settings.cache_dir,
                 trust_remote_code=True,
             )
-            self._model.to(self.settings.device)
+            self._model.to(resolved_device)
             self._model.eval()
 
             load_duration = time.perf_counter() - start_time
 
             self._info = ModelInfo(
                 name=self.settings.model_name,
-                device=self.settings.device,
-                dtype=self.settings.dtype,
+                device=resolved_device,
+                dtype=str(torch_dtype),
                 sample_rate=self.settings.sample_rate,
                 loaded_at=time.time(),
             )
@@ -137,10 +190,10 @@ class TTSModelManager:
         self._model = None
         self._processor = None
         self._info = None
+        self._info = None
         TTS_MODEL_LOADED.set(0)
 
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
+        self._clear_device_cache()
 
     @contextmanager
     def inference_context(self) -> Generator[None, None, None]:
@@ -151,9 +204,9 @@ class TTSModelManager:
         try:
             yield
         finally:
-            # Clear CUDA cache after inference to prevent memory fragmentation
-            if self.settings.device.startswith("cuda"):
-                torch.cuda.synchronize()
+            # Clear CUDA/MPS cache after inference to prevent memory fragmentation
+            # and synchronize if needed
+            self._synchronize_device()
 
     def synthesize(self, text: str, voice_id: str | None = None) -> torch.Tensor:
         """

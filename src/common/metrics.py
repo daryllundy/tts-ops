@@ -1,6 +1,7 @@
 """Prometheus metrics definitions and utilities."""
 
 from prometheus_client import Counter, Gauge, Histogram, Info
+from common.device_utils import is_mps_available
 
 # TTS Service Metrics
 TTS_REQUEST_DURATION = Histogram(
@@ -88,7 +89,7 @@ def record_gpu_metrics(device: str = "cuda:0") -> None:
     try:
         import torch
 
-        if torch.cuda.is_available():
+        if device.startswith("cuda") and torch.cuda.is_available():
             device_idx = int(device.split(":")[-1]) if ":" in device else 0
             memory_allocated = torch.cuda.memory_allocated(device_idx)
             TTS_GPU_MEMORY_USED.labels(device=device).set(memory_allocated)
@@ -103,5 +104,15 @@ def record_gpu_metrics(device: str = "cuda:0") -> None:
                 TTS_GPU_UTILIZATION.labels(device=device).set(util.gpu)
             except ImportError:
                 pass
+        
+        elif device == "mps" and is_mps_available():
+            # MPS metrics are limited, but we can get memory usage
+            try:
+                memory_allocated = torch.mps.current_allocated_memory()
+                TTS_GPU_MEMORY_USED.labels(device=device).set(memory_allocated)
+                # MPS utilization is not easily available via PyTorch
+            except Exception:
+                pass
+
     except Exception:
         pass
