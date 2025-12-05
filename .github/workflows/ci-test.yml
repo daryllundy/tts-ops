@@ -28,7 +28,7 @@ jobs:
             - name: Install dependencies
               run: |
                   python -m pip install --upgrade pip
-                  pip install -e ".[dev]"
+                  pip install -e ".[all]"
                   pip install types-requests types-PyYAML
 
             - name: Run Ruff
@@ -58,7 +58,7 @@ jobs:
             - name: Install dependencies
               run: |
                   python -m pip install --upgrade pip
-                  pip install -e ".[dev]"
+                  pip install -e ".[all]"
 
             - name: Run Tests
               run: pytest --cov=src --cov-report=xml
