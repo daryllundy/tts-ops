@@ -18,13 +18,15 @@ class TestTTSIntegration:
         with patch("tts_service.server.get_model_manager") as mock_manager:
             manager = Mock()
             manager.is_loaded = True
-            manager.info = Mock(
-                name="test-model",
-                device="cpu",
-                dtype="float32",
-                sample_rate=24000,
-                warmup_completed=True,
-            )
+            # Create info mock with attributes set explicitly (not via Mock constructor)
+            # Note: Mock(name=...) sets the mock's internal name, not an attribute
+            info_mock = Mock()
+            info_mock.name = "test-model"
+            info_mock.device = "cpu"
+            info_mock.dtype = "float32"
+            info_mock.sample_rate = 24000
+            info_mock.warmup_completed = True
+            manager.info = info_mock
             manager.synthesize.return_value = torch.randn(24000)
 
             def mock_streaming(text, chunk_size=4096):
@@ -225,13 +227,14 @@ class TestEndToEnd:
             # Mock TTS service
             tts_manager = Mock()
             tts_manager.is_loaded = True
-            tts_manager.info = Mock(
-                name="test-model",
-                device="cpu",
-                dtype="float32",
-                sample_rate=24000,
-                warmup_completed=True,
-            )
+            # Create info mock with attributes set explicitly
+            info_mock = Mock()
+            info_mock.name = "test-model"
+            info_mock.device = "cpu"
+            info_mock.dtype = "float32"
+            info_mock.sample_rate = 24000
+            info_mock.warmup_completed = True
+            tts_manager.info = info_mock
             tts_manager.synthesize.return_value = torch.randn(24000)
             mock_tts_manager.return_value = tts_manager
 
@@ -353,13 +356,14 @@ class TestServiceResilience:
         with patch("tts_service.server.get_model_manager") as mock_manager:
             manager = Mock()
             manager.is_loaded = True
-            manager.info = Mock(
-                name="test-model",
-                device="cpu",
-                dtype="float32",
-                sample_rate=24000,
-                warmup_completed=True,
-            )
+            # Create info mock with attributes set explicitly
+            info_mock = Mock()
+            info_mock.name = "test-model"
+            info_mock.device = "cpu"
+            info_mock.dtype = "float32"
+            info_mock.sample_rate = 24000
+            info_mock.warmup_completed = True
+            manager.info = info_mock
             manager.synthesize.return_value = torch.randn(24000)
             mock_manager.return_value = manager
 

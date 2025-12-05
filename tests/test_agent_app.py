@@ -125,16 +125,21 @@ class TestAgentEndpoints:
         assert "X-Processing-Time-Ms" in response.headers
 
     def test_chat_tts_unavailable(self, client, mock_clients):
-        """Test chat when TTS service is unavailable."""
+        """Test chat when TTS service is unavailable in streaming mode."""
         from agent_app.tts_client import TTSServiceUnavailable
 
-        mock_clients["tts"].synthesize.side_effect = TTSServiceUnavailable("TTS down")
+        # TTS is only called when stream=true AND include_audio=true
+        async def mock_streaming_error(text, voice_id=None):
+            raise TTSServiceUnavailable("TTS down")
+            yield  # Make it a generator
+
+        mock_clients["tts"].synthesize_streaming = mock_streaming_error
 
         response = client.post(
-            "/chat",
+            "/chat?stream=true",
             json={"text": "Hello", "include_audio": True},
         )
-        # Should still return 503 due to TTS error
+        # Should return 503 due to TTS error during streaming
         assert response.status_code == 503
 
     def test_synthesize_with_voice_id(self, client, mock_clients):
@@ -429,7 +434,8 @@ class TestLLMClients:
 
         client = AnthropicClient(settings)
 
-        with patch("agent_app.llm_client.AsyncAnthropic") as mock_anthropic:
+        # Patch where the import happens (anthropic module), not the importing module
+        with patch("anthropic.AsyncAnthropic") as mock_anthropic:
             mock_instance = AsyncMock()
             mock_message = Mock()
             mock_message.content = [Mock(text="Hello!")]
@@ -453,7 +459,8 @@ class TestLLMClients:
 
         client = OpenAIClient(settings)
 
-        with patch("agent_app.llm_client.AsyncOpenAI") as mock_openai:
+        # Patch where the import happens (openai module), not the importing module
+        with patch("openai.AsyncOpenAI") as mock_openai:
             mock_instance = AsyncMock()
             mock_response = Mock()
             mock_response.choices = [Mock(message=Mock(content="Hello!"))]

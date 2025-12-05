@@ -278,14 +278,14 @@ def test_backend_specific_cache_clearing(device: str) -> None:
     settings = TTSServiceSettings(device=device)
     manager = TTSModelManager(settings)
     
-    # Mock the backend availability
+    # Mock the backend availability - patch where the function is used, not where defined
     with patch("torch.cuda.is_available", return_value=(device.startswith("cuda"))):
-        with patch("common.device_utils.is_mps_available", return_value=(device == "mps")):
+        with patch("tts_service.model_loader.is_mps_available", return_value=(device == "mps")):
             with patch("torch.cuda.empty_cache") as cuda_cache:
                 with patch("torch.mps.empty_cache") as mps_cache:
                     # Call cache clearing
                     manager._clear_device_cache()
-                    
+
                     # Verify correct method was called
                     if device.startswith("cuda"):
                         cuda_cache.assert_called_once()
@@ -365,14 +365,14 @@ def test_backend_specific_synchronization(device: str) -> None:
     settings = TTSServiceSettings(device=device)
     manager = TTSModelManager(settings)
     
-    # Mock backend availability
+    # Mock backend availability - patch where the function is used, not where defined
     with patch("torch.cuda.is_available", return_value=(device.startswith("cuda"))):
-        with patch("common.device_utils.is_mps_available", return_value=(device == "mps")):
+        with patch("tts_service.model_loader.is_mps_available", return_value=(device == "mps")):
             with patch("torch.cuda.synchronize") as cuda_sync:
                 with patch("torch.mps.synchronize") as mps_sync:
                     # Call synchronization
                     manager._synchronize_device()
-                    
+
                     # Verify correct method was called
                     if device.startswith("cuda"):
                         cuda_sync.assert_called_once()

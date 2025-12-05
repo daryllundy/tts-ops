@@ -396,9 +396,10 @@ class TestModelManager:
 
     def test_load_model_success(self):
         """Test successful model loading."""
+        # Patch where the imports happen (transformers module), not the importing module
         with patch("tts_service.model_loader.get_tts_settings") as mock_settings, \
-             patch("tts_service.model_loader.AutoProcessor") as mock_processor, \
-             patch("tts_service.model_loader.AutoModelForTextToWaveform") as mock_model:
+             patch("transformers.AutoProcessor") as mock_processor, \
+             patch("transformers.AutoModelForTextToWaveform") as mock_model:
 
             mock_settings.return_value = Mock(
                 model_name="test-model",
@@ -427,9 +428,10 @@ class TestModelManager:
 
     def test_load_model_with_warmup(self):
         """Test model loading with warmup enabled."""
+        # Patch where the imports happen (transformers module), not the importing module
         with patch("tts_service.model_loader.get_tts_settings") as mock_settings, \
-             patch("tts_service.model_loader.AutoProcessor") as mock_processor, \
-             patch("tts_service.model_loader.AutoModelForTextToWaveform") as mock_model:
+             patch("transformers.AutoProcessor") as mock_processor, \
+             patch("transformers.AutoModelForTextToWaveform") as mock_model:
 
             mock_settings.return_value = Mock(
                 model_name="test-model",
