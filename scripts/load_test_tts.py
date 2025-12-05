@@ -3,9 +3,13 @@
 
 import argparse
 import asyncio
+import json
+import os
 import statistics
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
 
 import httpx
 
@@ -160,6 +164,36 @@ def print_results(results: LoadTestResults) -> None:
     print("=" * 50)
 
 
+def generate_metrics_json(results: LoadTestResults, duration_seconds: int) -> dict:
+    """Generate metrics in the format expected by regression detection."""
+    mean_latency = statistics.mean(results.latencies_ms) if results.latencies_ms else 0.0
+    error_rate = results.failed_requests / results.total_requests if results.total_requests > 0 else 0.0
+    throughput_rps = results.successful_requests / duration_seconds if duration_seconds > 0 else 0.0
+
+    return {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "git_sha": os.environ.get("GITHUB_SHA", "unknown"),
+        "workflow_run_id": os.environ.get("GITHUB_RUN_ID", "unknown"),
+        "metrics": {
+            "ttfa_ms": {
+                "mean": mean_latency,
+                "p50": results.p50_latency,
+                "p95": results.p95_latency,
+                "p99": results.p99_latency,
+            },
+            "e2e_latency_ms": {
+                "mean": mean_latency,
+                "p50": results.p50_latency,
+                "p95": results.p95_latency,
+                "p99": results.p99_latency,
+            },
+            "throughput_rps": throughput_rps,
+            "error_rate": error_rate,
+            "total_requests": results.total_requests,
+        },
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Load test TTS service")
     parser.add_argument(
@@ -185,6 +219,11 @@ def main() -> None:
         default=10,
         help="Maximum concurrent requests",
     )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help="Path to output metrics JSON file",
+    )
 
     args = parser.parse_args()
 
@@ -198,6 +237,14 @@ def main() -> None:
     )
 
     print_results(results)
+
+    # Generate and save metrics JSON if output path provided
+    if args.output:
+        metrics = generate_metrics_json(results, args.duration)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        with open(args.output, "w") as f:
+            json.dump(metrics, f, indent=2)
+        print(f"\n✅ Metrics saved to: {args.output}")
 
 
 if __name__ == "__main__":

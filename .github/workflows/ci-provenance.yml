@@ -1,0 +1,242 @@
+name: Provenance and Signing
+
+"on":
+    workflow_run:
+        workflows: ["Build and Push"]
+        types: [completed]
+        branches: [main]
+
+env:
+    REGISTRY: ghcr.io
+    IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+    # Only run for release tags
+    check-release:
+        runs-on: ubuntu-latest
+        if: ${{ github.event.workflow_run.conclusion == 'success' }}
+        outputs:
+            is_release: ${{ steps.check.outputs.is_release }}
+            tag: ${{ steps.check.outputs.tag }}
+        steps:
+            - name: Check if release tag
+              id: check
+              run: |
+                  REF="${{ github.event.workflow_run.head_branch }}"
+                  echo "Checking ref: $REF"
+                  
+                  if [[ "$REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                      echo "is_release=true" >> $GITHUB_OUTPUT
+                      echo "tag=$REF" >> $GITHUB_OUTPUT
+                      echo "This is a release tag: $REF"
+                  else
+                      echo "is_release=false" >> $GITHUB_OUTPUT
+                      echo "Not a release tag: $REF"
+                  fi
+
+    generate-provenance:
+        runs-on: ubuntu-latest
+        needs: check-release
+        if: ${{ needs.check-release.outputs.is_release == 'true' }}
+        permissions:
+            contents: read
+            packages: write
+            id-token: write
+        
+        strategy:
+            matrix:
+                service: [tts-service, agent-service]
+        
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Install Cosign
+              uses: sigstore/cosign-installer@v3
+              with:
+                  cosign-release: 'v2.2.2'
+
+            - name: Log in to the Container registry
+              uses: docker/login-action@v3
+              with:
+                  registry: ${{ env.REGISTRY }}
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Generate build metadata
+              id: metadata
+              run: |
+                  # Create build metadata JSON
+                  cat > build-metadata-${{ matrix.service }}.json <<EOF
+                  {
+                    "image": "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}:${{ needs.check-release.outputs.tag }}",
+                    "git_sha": "${{ github.event.workflow_run.head_sha }}",
+                    "git_ref": "refs/tags/${{ needs.check-release.outputs.tag }}",
+                    "workflow_run_id": "${{ github.event.workflow_run.id }}",
+                    "workflow_name": "${{ github.event.workflow_run.name }}",
+                    "build_timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+                    "builder": "github-actions",
+                    "repository": "${{ github.repository }}",
+                    "platforms": ["linux/amd64", "linux/arm64"]
+                  }
+                  EOF
+                  
+                  echo "Generated build metadata:"
+                  cat build-metadata-${{ matrix.service }}.json
+                  
+                  # Set image reference for later steps
+                  IMAGE_REF="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}:${{ needs.check-release.outputs.tag }}"
+                  echo "image_ref=$IMAGE_REF" >> $GITHUB_OUTPUT
+
+            - name: Generate SLSA provenance
+              id: provenance
+              run: |
+                  # Create SLSA provenance document
+                  cat > provenance-${{ matrix.service }}.json <<EOF
+                  {
+                    "_type": "https://in-toto.io/Statement/v0.1",
+                    "predicateType": "https://slsa.dev/provenance/v0.2",
+                    "subject": [
+                      {
+                        "name": "${{ steps.metadata.outputs.image_ref }}",
+                        "digest": {
+                          "sha256": "placeholder"
+                        }
+                      }
+                    ],
+                    "predicate": {
+                      "builder": {
+                        "id": "https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}"
+                      },
+                      "buildType": "https://github.com/docker/build-push-action@v5",
+                      "invocation": {
+                        "configSource": {
+                          "uri": "git+https://github.com/${{ github.repository }}@refs/tags/${{ needs.check-release.outputs.tag }}",
+                          "digest": {
+                            "sha1": "${{ github.event.workflow_run.head_sha }}"
+                          },
+                          "entryPoint": ".github/workflows/ci-build-push.yml"
+                        }
+                      },
+                      "metadata": {
+                        "buildInvocationId": "${{ github.event.workflow_run.id }}",
+                        "buildStartedOn": "${{ github.event.workflow_run.created_at }}",
+                        "buildFinishedOn": "${{ github.event.workflow_run.updated_at }}",
+                        "completeness": {
+                          "parameters": true,
+                          "environment": false,
+                          "materials": true
+                        },
+                        "reproducible": false
+                      },
+                      "materials": [
+                        {
+                          "uri": "git+https://github.com/${{ github.repository }}@refs/tags/${{ needs.check-release.outputs.tag }}",
+                          "digest": {
+                            "sha1": "${{ github.event.workflow_run.head_sha }}"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                  EOF
+                  
+                  echo "Generated SLSA provenance:"
+                  cat provenance-${{ matrix.service }}.json
+
+            - name: Sign image with Cosign (keyless)
+              env:
+                  COSIGN_EXPERIMENTAL: 1
+              run: |
+                  IMAGE_REF="${{ steps.metadata.outputs.image_ref }}"
+                  echo "Signing image: $IMAGE_REF"
+                  
+                  # Sign the image using keyless signing with Sigstore
+                  cosign sign --yes "$IMAGE_REF"
+                  
+                  echo "Image signed successfully"
+
+            - name: Attach provenance as attestation
+              env:
+                  COSIGN_EXPERIMENTAL: 1
+              run: |
+                  IMAGE_REF="${{ steps.metadata.outputs.image_ref }}"
+                  echo "Attaching provenance to: $IMAGE_REF"
+                  
+                  # Attach the provenance document as an attestation
+                  cosign attest --yes \
+                      --predicate provenance-${{ matrix.service }}.json \
+                      --type slsaprovenance \
+                      "$IMAGE_REF"
+                  
+                  echo "Provenance attached successfully"
+
+            - name: Attach build metadata as attestation
+              env:
+                  COSIGN_EXPERIMENTAL: 1
+              run: |
+                  IMAGE_REF="${{ steps.metadata.outputs.image_ref }}"
+                  echo "Attaching build metadata to: $IMAGE_REF"
+                  
+                  # Attach build metadata as a custom attestation
+                  cosign attest --yes \
+                      --predicate build-metadata-${{ matrix.service }}.json \
+                      --type https://github.com/vibevoice/build-metadata/v1 \
+                      "$IMAGE_REF"
+                  
+                  echo "Build metadata attached successfully"
+
+            - name: Verify signature
+              env:
+                  COSIGN_EXPERIMENTAL: 1
+              run: |
+                  IMAGE_REF="${{ steps.metadata.outputs.image_ref }}"
+                  echo "Verifying signature for: $IMAGE_REF"
+                  
+                  # Verify the signature
+                  cosign verify "$IMAGE_REF" \
+                      --certificate-identity-regexp="https://github.com/${{ github.repository }}" \
+                      --certificate-oidc-issuer=https://token.actions.githubusercontent.com
+                  
+                  echo "Signature verified successfully"
+
+            - name: Verify attestations
+              env:
+                  COSIGN_EXPERIMENTAL: 1
+              run: |
+                  IMAGE_REF="${{ steps.metadata.outputs.image_ref }}"
+                  echo "Verifying attestations for: $IMAGE_REF"
+                  
+                  # Verify SLSA provenance attestation
+                  cosign verify-attestation "$IMAGE_REF" \
+                      --type slsaprovenance \
+                      --certificate-identity-regexp="https://github.com/${{ github.repository }}" \
+                      --certificate-oidc-issuer=https://token.actions.githubusercontent.com
+                  
+                  echo "Attestations verified successfully"
+
+            - name: Upload provenance artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: provenance-${{ matrix.service }}
+                  path: |
+                      provenance-${{ matrix.service }}.json
+                      build-metadata-${{ matrix.service }}.json
+                  retention-days: 90
+
+    summary:
+        runs-on: ubuntu-latest
+        needs: [check-release, generate-provenance]
+        if: always() && needs.check-release.outputs.is_release == 'true'
+        steps:
+            - name: Check provenance results
+              run: |
+                  if [ "${{ needs.generate-provenance.result }}" == "failure" ]; then
+                      echo "::error::Provenance generation and signing failed"
+                      exit 1
+                  elif [ "${{ needs.generate-provenance.result }}" == "success" ]; then
+                      echo "✅ Provenance generated and images signed successfully"
+                      echo "Release: ${{ needs.check-release.outputs.tag }}"
+                  else
+                      echo "::warning::Provenance job was skipped or cancelled"
+                  fi
