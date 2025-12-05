@@ -86,8 +86,8 @@ The service provides native GPU acceleration on Apple Silicon (M1/M2/M3/M4) via 
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/vibevoice-realtime-agent.git
-cd vibevoice-realtime-agent
+git clone https://github.com/daryllundy/tts-ops.git
+cd tts-ops
 
 # Install dependencies (includes PyTorch with MPS support)
 pip install -e ".[dev]"
@@ -443,7 +443,7 @@ The project uses GitHub Actions for continuous integration and delivery:
 ## Project Structure
 
 ```
-vibevoice-realtime-agent/
+tts-ops/
 ├── src/
 │   ├── agent_app/          # Voice agent service
 │   ├── tts_service/        # TTS microservice
