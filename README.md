@@ -407,9 +407,8 @@ Prometheus-formatted metrics endpoint.
 
 ### Grafana Dashboards
 
-Import dashboards from `infra/monitoring/dashboards/`:
-- `voice-agent-overview.json` - High-level service health
-- `tts-performance.json` - Detailed TTS metrics
+Dashboards are configured via Helm charts in `infra/k8s/helm`.
+
 
 ## Testing
 
@@ -422,7 +421,24 @@ pytest tests/integration/ -v --integration
 
 # Load testing
 python scripts/load_test_tts.py --rps 10 --duration 60
+
+# Smoke testing (after container build)
+python scripts/smoke_test.py --tts-url http://localhost:8001 --agent-url http://localhost:8000
+
+# Performance regression check
+python scripts/check_performance_regression.py --current metrics.json --baseline baseline.json --output report.json
 ```
+
+## CI/CD Pipelines
+
+The project uses GitHub Actions for continuous integration and delivery:
+
+- **Build & Push**: Builds Docker images for x86_64 and ARM64, pushing to registry.
+- **Tests**: Runs unit tests, linting, and type checking on every PR.
+- **Security Scans**: Scans dependencies and container images for vulnerabilities.
+- **Smoke Tests**: Validates container health and basic functionality post-build.
+- **Performance**: Automates regression testing for latency and throughput.
+
 
 ## Project Structure
 
@@ -435,9 +451,9 @@ vibevoice-realtime-agent/
 ├── infra/
 │   ├── docker/             # Dockerfiles
 │   ├── k8s/helm/           # Helm charts
-│   ├── terraform/          # Infrastructure as code
-│   └── monitoring/         # Prometheus/Grafana configs
-├── scripts/                # Development scripts
+│   └── terraform/          # Infrastructure as code
+├── scripts/                # Development & CI scripts
+
 ├── tests/                  # Test suites
 └── docs/                   # Additional documentation
 ```
