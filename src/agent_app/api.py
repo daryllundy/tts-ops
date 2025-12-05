@@ -106,7 +106,7 @@ async def metrics() -> Response:
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
-@app.post("/chat", tags=["chat"])
+@app.post("/chat", tags=["chat"], response_model=None)
 async def chat(
     request: ChatRequest,
     stream: Annotated[bool, Query(description="Stream audio response")] = False,

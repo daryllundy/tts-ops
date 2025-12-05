@@ -118,6 +118,7 @@ recordings/
 .DS_Store
 .AppleDouble
 .LSOverride
+.history/
 
 # Linux
 *~

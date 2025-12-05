@@ -1,0 +1,21 @@
+version: "3.8"
+
+# Docker Compose override for Apple Silicon (ARM64)
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.arm64.yml up
+
+services:
+  tts:
+    platform: linux/arm64
+    build:
+      args:
+        - TARGETARCH=arm64
+    # Remove NVIDIA GPU configuration for ARM64
+    deploy:
+      resources:
+        reservations: {}
+    environment:
+      # MPS will be auto-detected on Apple Silicon
+      - TTS_DEVICE=auto
+
+  agent:
+    platform: linux/arm64
