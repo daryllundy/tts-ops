@@ -22,13 +22,14 @@ class LLMClient(ABC):
         """Generate a response from the LLM."""
 
     @abstractmethod
-    def generate_streaming(
+    async def generate_streaming(
         self,
         messages: list[dict[str, str]],
         system_prompt: str | None = None,
     ) -> AsyncGenerator[str, None]:
         """Generate a streaming response from the LLM."""
-        ...
+        if False:
+            yield
 
 
 class AnthropicClient(LLMClient):
@@ -36,7 +37,7 @@ class AnthropicClient(LLMClient):
 
     def __init__(self, settings: AgentServiceSettings) -> None:
         self.settings = settings
-        self._client = None
+        self._client: Any | None = None
 
     async def _get_client(self) -> Any:
         """Lazy initialization of Anthropic client."""
@@ -87,7 +88,7 @@ class OpenAIClient(LLMClient):
 
     def __init__(self, settings: AgentServiceSettings) -> None:
         self.settings = settings
-        self._client = None
+        self._client: Any | None = None
 
     async def _get_client(self) -> Any:
         """Lazy initialization of OpenAI client."""
@@ -190,7 +191,7 @@ def create_llm_client(settings: AgentServiceSettings | None = None) -> LLMClient
     if not client_class:
         raise ValueError(f"Unknown LLM provider: {settings.llm_provider}")
 
-    return client_class(settings)
+    return client_class(settings)  # type: ignore[abstract]
 
 
 # Singleton instance
