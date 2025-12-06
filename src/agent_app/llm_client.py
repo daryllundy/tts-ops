@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
+from typing import Any
 
 from common.config import AgentServiceSettings, get_agent_settings
 from common.logging import get_logger
@@ -21,12 +22,13 @@ class LLMClient(ABC):
         """Generate a response from the LLM."""
 
     @abstractmethod
-    async def generate_streaming(
+    def generate_streaming(
         self,
         messages: list[dict[str, str]],
         system_prompt: str | None = None,
     ) -> AsyncGenerator[str, None]:
         """Generate a streaming response from the LLM."""
+        ...
 
 
 class AnthropicClient(LLMClient):
@@ -36,7 +38,7 @@ class AnthropicClient(LLMClient):
         self.settings = settings
         self._client = None
 
-    async def _get_client(self):
+    async def _get_client(self) -> Any:
         """Lazy initialization of Anthropic client."""
         if self._client is None:
             try:
@@ -61,7 +63,7 @@ class AnthropicClient(LLMClient):
             messages=messages,
         )
 
-        return response.content[0].text
+        return str(response.content[0].text)
 
     async def generate_streaming(
         self,
@@ -87,7 +89,7 @@ class OpenAIClient(LLMClient):
         self.settings = settings
         self._client = None
 
-    async def _get_client(self):
+    async def _get_client(self) -> Any:
         """Lazy initialization of OpenAI client."""
         if self._client is None:
             try:

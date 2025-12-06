@@ -41,7 +41,7 @@ class TTSClient:
         await self.connect()
         return self
 
-    async def __aexit__(self, *args) -> None:
+    async def __aexit__(self, *args: object) -> None:
         """Async context manager exit."""
         await self.close()
 
@@ -77,7 +77,7 @@ class TTSClient:
             response = await self.client.get("/health")
             if response.status_code == 200:
                 data = response.json()
-                return data.get("model_loaded", False)
+                return bool(data.get("model_loaded", False))
             return False
         except httpx.HTTPError as e:
             logger.warning("TTS health check failed", error=str(e))

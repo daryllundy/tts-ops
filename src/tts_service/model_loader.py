@@ -226,6 +226,10 @@ class TTSModelManager:
         if len(text) > self.settings.max_text_length:
             raise ValueError(f"Text exceeds maximum length of {self.settings.max_text_length}")
 
+        # Type narrowing for mypy - these are guaranteed non-None after is_loaded check
+        assert self._processor is not None
+        assert self._model is not None
+
         with self.inference_context(), torch.inference_mode():
             inputs = self._processor(
                 text=text,
@@ -233,7 +237,7 @@ class TTSModelManager:
             ).to(self.settings.device)
 
             outputs = self._model.generate(**inputs)
-            audio = outputs.squeeze()
+            audio: torch.Tensor = outputs.squeeze()
 
         return audio
 

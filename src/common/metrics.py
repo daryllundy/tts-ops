@@ -97,7 +97,7 @@ def record_gpu_metrics(device: str = "cuda:0") -> None:
 
             # GPU utilization requires pynvml, so we handle import gracefully
             try:
-                import pynvml
+                import pynvml  # type: ignore[import-not-found]
 
                 pynvml.nvmlInit()
                 handle = pynvml.nvmlDeviceGetHandleByIndex(device_idx)
