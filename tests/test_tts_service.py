@@ -1,6 +1,6 @@
 """Unit tests for TTS service."""
 
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 import torch
