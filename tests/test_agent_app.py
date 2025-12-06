@@ -440,7 +440,7 @@ class TestLLMClients:
 
         with patch.dict("sys.modules", {"anthropic": mock_anthropic_module}):
             from agent_app.llm_client import AnthropicClient
-            
+
             client = AnthropicClient(settings)
             response = await client.generate([{"role": "user", "content": "Hi"}])
             assert response == "Hello!"
@@ -469,7 +469,7 @@ class TestLLMClients:
 
         with patch.dict("sys.modules", {"openai": mock_openai_module}):
             from agent_app.llm_client import OpenAIClient
-            
+
             client = OpenAIClient(settings)
             response = await client.generate([{"role": "user", "content": "Hi"}])
             assert response == "Hello!"
