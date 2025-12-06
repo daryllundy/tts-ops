@@ -53,7 +53,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir --upgrade pip wheel setuptools
 
 # Install PyTorch with appropriate backend for architecture
-COPY pyproject.toml ./
+COPY pyproject.toml README.md ./
 RUN if [ "$TARGETARCH" = "amd64" ]; then \
         # x86_64: Install PyTorch with CUDA support
         pip install --no-cache-dir torch>=2.1.0 torchaudio>=2.1.0 --index-url https://download.pytorch.org/whl/cu121; \
