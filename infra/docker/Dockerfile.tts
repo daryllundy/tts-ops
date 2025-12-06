@@ -7,8 +7,8 @@
 # =============================================================================
 
 # Build arguments for multi-architecture support
-ARG TARGETARCH
-ARG TARGETPLATFORM
+ARG TARGETARCH=amd64
+ARG TARGETPLATFORM=linux/amd64
 
 # -----------------------------------------------------------------------------
 # Stage 1: Architecture-specific base images
