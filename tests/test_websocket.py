@@ -1,9 +1,10 @@
 """Unit tests for WebSocket endpoint."""
 
+import json
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, Mock, patch
-import json
 
 from agent_app.api import app
 
@@ -198,12 +199,12 @@ class TestWebSocketChat:
             try:
                 while True:
                     data = websocket.receive()
-                    if data["type"] == "websocket.bytes":
-                        audio_chunks.append(data["bytes"])
-                    elif data["type"] == "websocket.send":
-                        payload = data.get("text")
-                        if payload:
-                            msg = json.loads(payload)
+                    # Binary data comes as websocket.send with "bytes" key
+                    if data["type"] == "websocket.send":
+                        if "bytes" in data:
+                            audio_chunks.append(data["bytes"])
+                        elif "text" in data:
+                            msg = json.loads(data["text"])
                             if msg.get("type") == "done":
                                 break
             except Exception:

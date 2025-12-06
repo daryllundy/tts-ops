@@ -1,14 +1,15 @@
 """VibeVoice-Realtime model loading and management."""
 
 import time
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Generator
+from typing import Any
 
 import torch
 
 from common.config import TTSServiceSettings, get_tts_settings
-from common.device_utils import resolve_device, is_mps_available
+from common.device_utils import is_mps_available, resolve_device
 from common.logging import get_logger
 from common.metrics import TTS_MODEL_INFO, TTS_MODEL_LOADED
 
@@ -54,16 +55,16 @@ class TTSModelManager:
     def _get_optimal_dtype(self, device: str) -> torch.dtype:
         """
         Get the optimal dtype for the given device.
-        
+
         Args:
             device: The resolved device string.
-            
+
         Returns:
             torch.dtype: The optimal dtype.
         """
         # Respect configured dtype if possible, but adjust for device limitations
         requested_dtype = self.settings.dtype
-        
+
         if device == "mps":
             # MPS has limited float16 support, often better to use float32 for stability
             # unless specifically requested and known to work.
@@ -74,7 +75,7 @@ class TTSModelManager:
             if requested_dtype == "float16":
                 logger.debug("Using float16 on MPS, ensure model supports it.")
                 return torch.float16
-        
+
         dtype_map = {
             "float16": torch.float16,
             "bfloat16": torch.bfloat16,
@@ -113,11 +114,11 @@ class TTSModelManager:
 
         try:
             # Import here to avoid loading torch at module import time
-            from transformers import AutoProcessor, AutoModelForTextToWaveform
+            from transformers import AutoModelForTextToWaveform, AutoProcessor
 
             resolved_device = self._resolve_device()
             torch_dtype = self._get_optimal_dtype(resolved_device)
-            
+
             logger.info(
                 "Resolved device configuration",
                 configured_device=self.settings.device,
@@ -225,15 +226,18 @@ class TTSModelManager:
         if len(text) > self.settings.max_text_length:
             raise ValueError(f"Text exceeds maximum length of {self.settings.max_text_length}")
 
-        with self.inference_context():
-            with torch.inference_mode():
-                inputs = self._processor(
-                    text=text,
-                    return_tensors="pt",
-                ).to(self.settings.device)
+        # Type narrowing for mypy - these are guaranteed non-None after is_loaded check
+        assert self._processor is not None
+        assert self._model is not None
 
-                outputs = self._model.generate(**inputs)
-                audio = outputs.squeeze()
+        with self.inference_context(), torch.inference_mode():
+            inputs = self._processor(
+                text=text,
+                return_tensors="pt",
+            ).to(self.settings.device)
+
+            outputs = self._model.generate(**inputs)
+            audio: torch.Tensor = outputs.squeeze()
 
         return audio
 

@@ -16,7 +16,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-
 # Regression thresholds (as percentages)
 THRESHOLDS = {
     "ttfa_ms": {"mean": 10.0, "p50": 10.0, "p95": 10.0, "p99": 10.0},
@@ -90,7 +89,7 @@ class RegressionResult:
 def load_metrics(file_path: Path) -> dict[str, Any]:
     """Load metrics from JSON file."""
     try:
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             return json.load(f)
     except FileNotFoundError:
         print(f"Error: File not found: {file_path}", file=sys.stderr)

@@ -1,7 +1,8 @@
 """LLM client abstraction supporting multiple providers."""
 
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Any
 
 from common.config import AgentServiceSettings, get_agent_settings
 from common.logging import get_logger
@@ -27,6 +28,8 @@ class LLMClient(ABC):
         system_prompt: str | None = None,
     ) -> AsyncGenerator[str, None]:
         """Generate a streaming response from the LLM."""
+        if False:
+            yield
 
 
 class AnthropicClient(LLMClient):
@@ -34,17 +37,17 @@ class AnthropicClient(LLMClient):
 
     def __init__(self, settings: AgentServiceSettings) -> None:
         self.settings = settings
-        self._client = None
+        self._client: Any | None = None
 
-    async def _get_client(self):
+    async def _get_client(self) -> Any:
         """Lazy initialization of Anthropic client."""
         if self._client is None:
             try:
                 from anthropic import AsyncAnthropic
 
                 self._client = AsyncAnthropic()
-            except ImportError:
-                raise RuntimeError("anthropic package not installed. Install with: pip install anthropic")
+            except ImportError as e:
+                raise RuntimeError("anthropic package not installed. Install with: pip install anthropic") from e
         return self._client
 
     async def generate(
@@ -61,7 +64,7 @@ class AnthropicClient(LLMClient):
             messages=messages,
         )
 
-        return response.content[0].text
+        return str(response.content[0].text)
 
     async def generate_streaming(
         self,
@@ -85,17 +88,17 @@ class OpenAIClient(LLMClient):
 
     def __init__(self, settings: AgentServiceSettings) -> None:
         self.settings = settings
-        self._client = None
+        self._client: Any | None = None
 
-    async def _get_client(self):
+    async def _get_client(self) -> Any:
         """Lazy initialization of OpenAI client."""
         if self._client is None:
             try:
                 from openai import AsyncOpenAI
 
                 self._client = AsyncOpenAI()
-            except ImportError:
-                raise RuntimeError("openai package not installed. Install with: pip install openai")
+            except ImportError as e:
+                raise RuntimeError("openai package not installed. Install with: pip install openai") from e
         return self._client
 
     async def generate(
@@ -188,7 +191,7 @@ def create_llm_client(settings: AgentServiceSettings | None = None) -> LLMClient
     if not client_class:
         raise ValueError(f"Unknown LLM provider: {settings.llm_provider}")
 
-    return client_class(settings)
+    return client_class(settings)  # type: ignore[abstract]
 
 
 # Singleton instance

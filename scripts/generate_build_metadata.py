@@ -14,10 +14,9 @@ import argparse
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 # Required fields for build metadata
 REQUIRED_FIELDS = [
@@ -153,7 +152,7 @@ def generate_build_metadata(
         metadata.add_error("Missing required field: workflow_run_id")
 
     # Add build timestamp (always available)
-    build_timestamp = datetime.now(timezone.utc).isoformat()
+    build_timestamp = datetime.now(UTC).isoformat()
     metadata.add_field("build_timestamp", build_timestamp)
 
     # Add builder (default to github-actions)
@@ -256,7 +255,7 @@ def main() -> None:
         print(f"✅ Metadata saved to: {args.output}")
         sys.exit(0)
     else:
-        print(f"❌ Failed to generate valid metadata", file=sys.stderr)
+        print("❌ Failed to generate valid metadata", file=sys.stderr)
         sys.exit(1)
 
 

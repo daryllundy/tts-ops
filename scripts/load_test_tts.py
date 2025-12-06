@@ -8,7 +8,7 @@ import os
 import statistics
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
@@ -171,7 +171,7 @@ def generate_metrics_json(results: LoadTestResults, duration_seconds: int) -> di
     throughput_rps = results.successful_requests / duration_seconds if duration_seconds > 0 else 0.0
 
     return {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "git_sha": os.environ.get("GITHUB_SHA", "unknown"),
         "workflow_run_id": os.environ.get("GITHUB_RUN_ID", "unknown"),
         "metrics": {

@@ -43,7 +43,7 @@ jobs:
               uses: docker/build-push-action@v5
               with:
                   context: .
-                  file: ./Dockerfile.tts
+                  file: ./infra/docker/Dockerfile.tts
                   push: true
                   tags: ${{ steps.meta-tts.outputs.tags }}
                   labels: ${{ steps.meta-tts.outputs.labels }}
@@ -61,7 +61,7 @@ jobs:
               uses: docker/build-push-action@v5
               with:
                   context: .
-                  file: ./Dockerfile.agent
+                  file: ./infra/docker/Dockerfile.agent
                   push: true
                   tags: ${{ steps.meta-agent.outputs.tags }}
                   labels: ${{ steps.meta-agent.outputs.labels }}

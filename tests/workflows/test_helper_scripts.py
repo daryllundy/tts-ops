@@ -4,9 +4,7 @@ Tests for CI/CD helper scripts.
 These tests validate the behavior of helper scripts used in GitHub Actions workflows.
 """
 
-import pytest
 from pathlib import Path
-
 
 SCRIPTS_DIR = Path(__file__).parent.parent.parent / "scripts"
 
@@ -28,7 +26,7 @@ def test_scripts_directory_has_readme():
 
 # class TestRegressionDetection:
 #     """Tests for check_performance_regression.py script."""
-#     
+#
 #     def test_script_exists(self):
 #         """Test that the regression detection script exists."""
 #         script_path = SCRIPTS_DIR / "check_performance_regression.py"
@@ -37,7 +35,7 @@ def test_scripts_directory_has_readme():
 
 # class TestBuildMetadata:
 #     """Tests for generate_build_metadata.py script."""
-#     
+#
 #     def test_script_exists(self):
 #         """Test that the build metadata script exists."""
 #         script_path = SCRIPTS_DIR / "generate_build_metadata.py"
@@ -46,7 +44,7 @@ def test_scripts_directory_has_readme():
 
 # class TestSmokeTest:
 #     """Tests for smoke_test.py script."""
-#     
+#
 #     def test_script_exists(self):
 #         """Test that the smoke test script exists."""
 #         script_path = SCRIPTS_DIR / "smoke_test.py"

@@ -1,12 +1,13 @@
 """Unit tests for TTS service."""
 
-import pytest
-from fastapi.testclient import TestClient
-from unittest.mock import Mock, patch, MagicMock
-import torch
+from unittest.mock import MagicMock, Mock, patch
 
-from tts_service.server import app
+import pytest
+import torch
+from fastapi.testclient import TestClient
+
 from tts_service.model_loader import TTSModelManager
+from tts_service.server import app
 from tts_service.streaming import tensor_to_pcm_bytes, tensor_to_wav_bytes
 
 
@@ -28,10 +29,10 @@ class TestTTSEndpoints:
             info_mock.warmup_completed = True
             manager.info = info_mock
             mock_manager.return_value = manager
-            
+
             # Mock synthesize to return a tensor
             manager.synthesize.return_value = torch.randn(24000)
-            
+
             yield TestClient(app, raise_server_exceptions=False)
 
     def test_health_check_healthy(self, client):
@@ -49,7 +50,7 @@ class TestTTSEndpoints:
             manager.is_loaded = False
             manager.info = None
             mock_manager.return_value = manager
-            
+
             with TestClient(app, raise_server_exceptions=False) as client:
                 response = client.get("/health")
                 assert response.status_code == 200
@@ -396,9 +397,13 @@ class TestModelManager:
 
     def test_load_model_success(self):
         """Test successful model loading."""
+        # Patch transformers in sys.modules to handle local import
+        mock_transformers = MagicMock()
+        mock_processor_cls = mock_transformers.AutoProcessor
+        mock_model_cls = mock_transformers.AutoModelForTextToWaveform
+
         with patch("tts_service.model_loader.get_tts_settings") as mock_settings, \
-             patch("tts_service.model_loader.AutoProcessor") as mock_processor, \
-             patch("tts_service.model_loader.AutoModelForTextToWaveform") as mock_model:
+             patch.dict("sys.modules", {"transformers": mock_transformers}):
 
             mock_settings.return_value = Mock(
                 model_name="test-model",
@@ -412,10 +417,10 @@ class TestModelManager:
 
             # Mock the model and processor
             mock_processor_instance = Mock()
-            mock_processor.from_pretrained.return_value = mock_processor_instance
+            mock_processor_cls.from_pretrained.return_value = mock_processor_instance
 
             mock_model_instance = Mock()
-            mock_model.from_pretrained.return_value = mock_model_instance
+            mock_model_cls.from_pretrained.return_value = mock_model_instance
 
             manager = TTSModelManager()
             manager.load()
@@ -427,9 +432,13 @@ class TestModelManager:
 
     def test_load_model_with_warmup(self):
         """Test model loading with warmup enabled."""
+        # Patch transformers in sys.modules
+        mock_transformers = MagicMock()
+        mock_processor_cls = mock_transformers.AutoProcessor
+        mock_model_cls = mock_transformers.AutoModelForTextToWaveform
+
         with patch("tts_service.model_loader.get_tts_settings") as mock_settings, \
-             patch("tts_service.model_loader.AutoProcessor") as mock_processor, \
-             patch("tts_service.model_loader.AutoModelForTextToWaveform") as mock_model:
+             patch.dict("sys.modules", {"transformers": mock_transformers}):
 
             mock_settings.return_value = Mock(
                 model_name="test-model",
@@ -442,12 +451,12 @@ class TestModelManager:
             )
 
             mock_processor_instance = Mock()
-            mock_processor.from_pretrained.return_value = mock_processor_instance
+            mock_processor_cls.from_pretrained.return_value = mock_processor_instance
             mock_processor_instance.return_value.to.return_value = {"input_ids": torch.tensor([[1, 2, 3]])}
 
             mock_model_instance = Mock()
             mock_model_instance.generate.return_value = torch.randn(24000)
-            mock_model.from_pretrained.return_value = mock_model_instance
+            mock_model_cls.from_pretrained.return_value = mock_model_instance
 
             manager = TTSModelManager()
             manager.load()
