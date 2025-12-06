@@ -1,5 +1,7 @@
 import sys
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 # Mock prometheus_client globally to avoid Duplicated timeseries errors
@@ -40,3 +42,16 @@ class MockPrometheus:
 
 # Replace the module in sys.modules
 sys.modules["prometheus_client"] = MockPrometheus()  # type: ignore
+
+
+@pytest.fixture(autouse=True)
+def fix_prometheus_constants():
+    """
+    Ensure prometheus constants are strings, not Mocks.
+    This handles cases where modules might have imported prometheus_client
+    before our sys.modules hack took effect.
+    """
+    val = "text/plain; charset=utf-8"
+    with patch("agent_app.api.CONTENT_TYPE_LATEST", val), \
+         patch("tts_service.server.CONTENT_TYPE_LATEST", val):
+        yield
