@@ -216,7 +216,7 @@ jobs:
                   echo "Attestations verified successfully"
 
             - name: Upload provenance artifacts
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v5
               with:
                   name: provenance-${{ matrix.service }}
                   path: |
