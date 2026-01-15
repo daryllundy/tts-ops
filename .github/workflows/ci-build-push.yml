@@ -53,7 +53,7 @@ jobs:
                   images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/tts-service
 
             - name: Build and push TTS image
-              uses: docker/build-push-action@v5
+              uses: docker/build-push-action@v6
               with:
                   context: .
                   file: ./infra/docker/Dockerfile.tts
@@ -77,7 +77,7 @@ jobs:
                   images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/agent-service
 
             - name: Build and push Agent image
-              uses: docker/build-push-action@v5
+              uses: docker/build-push-action@v6
               with:
                   context: .
                   file: ./infra/docker/Dockerfile.agent
