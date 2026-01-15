@@ -98,7 +98,7 @@ jobs:
       
       - name: Download baseline metrics
         id: download-baseline
-        uses: dawidd6/action-download-artifact@v3
+        uses: dawidd6/action-download-artifact@v11
         continue-on-error: true
         with:
           workflow: ci-performance.yml
