@@ -91,7 +91,7 @@ jobs:
           python-version: '3.11'
       
       - name: Download current metrics
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: performance-metrics
           path: .
