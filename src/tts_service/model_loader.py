@@ -4,6 +4,7 @@ import time
 from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
+from importlib.metadata import PackageNotFoundError, version as package_version
 from typing import Any
 
 import torch
@@ -14,6 +15,14 @@ from common.logging import get_logger
 from common.metrics import TTS_MODEL_INFO, TTS_MODEL_LOADED
 
 logger = get_logger(__name__)
+
+
+def _installed_version(package_name: str) -> str:
+    """Return installed package version or 'not-installed'."""
+    try:
+        return package_version(package_name)
+    except PackageNotFoundError:
+        return "not-installed"
 
 
 @dataclass
@@ -165,7 +174,13 @@ class TTSModelManager:
 
         except Exception as e:
             TTS_MODEL_LOADED.set(0)
-            logger.exception("Failed to load model", error=str(e))
+            logger.exception(
+                "Failed to load model",
+                error=str(e),
+                transformers_version=_installed_version("transformers"),
+                torch_version=_installed_version("torch"),
+                torchaudio_version=_installed_version("torchaudio"),
+            )
             raise RuntimeError(f"Model loading failed: {e}") from e
 
     def _warmup(self) -> None:

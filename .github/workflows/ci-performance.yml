@@ -37,20 +37,31 @@ jobs:
         run: |
           # Start TTS service in background for consistent benchmarking
           # Using CPU mode for reproducibility across runners
-          python -m tts_service.server &
+          python -m tts_service.server > tts-service.log 2>&1 &
           TTS_PID=$!
           echo "TTS_PID=$TTS_PID" >> $GITHUB_ENV
 
           # Wait for service to be ready
           echo "Waiting for TTS service to start..."
+          healthy=false
           for i in {1..30}; do
             if curl -s http://localhost:8000/health > /dev/null; then
               echo "TTS service is ready"
+              healthy=true
               break
             fi
             echo "Waiting... ($i/30)"
             sleep 2
           done
+
+          if [ "$healthy" != "true" ]; then
+            echo "TTS service failed to become healthy within timeout"
+            if [ -f "tts-service.log" ]; then
+              echo "=== Last 200 lines of tts-service.log ==="
+              tail -n 200 tts-service.log
+            fi
+            exit 1
+          fi
       
       - name: Run load test
         run: |
