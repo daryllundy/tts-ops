@@ -1,5 +1,4 @@
-import sys
-from transformers import AutoProcessor, AutoTokenizer, AutoFeatureExtractor
+from transformers import AutoFeatureExtractor, AutoProcessor, AutoTokenizer
 
 model_name = "microsoft/VibeVoice-Realtime-0.5B"
 print(f"Attempting to load processor for: {model_name}")
