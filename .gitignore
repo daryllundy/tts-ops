@@ -1,139 +1,101 @@
-# Python
+# Python bytecode and packaging
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
 build/
-develop-eggs/
 dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-PYTHONPATH
 
 # Virtual environments
+.venv/
 venv/
 env/
 ENV/
 env.bak/
 venv.bak/
-.venv/
 
-# IDEs
+# Tool caches
+.pytest_cache/
+.hypothesis/
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.tox/
+.nox/
+.cache/
+
+# Test and coverage outputs
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+*.cover
+
+# Notebook and local env files
+.ipynb_checkpoints
+*.ipynb
+.env
+.env.local
+.env.*.local
+*.env
+
+# Logs and temporary files
+*.log
+*.log.*
+logs/
+tmp/
+temp/
+*.tmp
+*.bak
+
+# IDE and OS files
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 .DS_Store
-
-# Testing
-.pytest_cache/
-.coverage
-.coverage.*
-htmlcov/
-.tox/
-.nox/
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
-
-# Type checking
-.mypy_cache/
-.dmypy.json
-dmypy.json
-.pytype/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-*.ipynb
-
-# Environment variables
-.env
-.env.local
-.env.*.local
-*.env
-
-# Logs
-*.log
-logs/
-*.log.*
-
-# Models and cache
-models/
-.cache/
-*.bin
-*.safetensors
-*.ckpt
-*.pth
-*.pt
-checkpoints/
-
-# HuggingFace cache
-.huggingface/
-transformers_cache/
-
-# Data and temporary files
-data/
-tmp/
-temp/
-*.tmp
-*.bak
-*.swp
-
-# Docker
-.dockerignore
-
-# Kubernetes
-*.kubeconfig
-secrets/
-*.secret.yaml
-
-# Monitoring and metrics data
-prometheus_data/
-grafana_data/
-
-# Audio files (generated outputs)
-*.wav
-*.mp3
-*.pcm
-*.flac
-audio_output/
-recordings/
-
-# macOS
-.DS_Store
 .AppleDouble
 .LSOverride
-.history/
-
-# Linux
-*~
 .directory
-
-# Windows
 Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# Project specific
+# Model and generated artifact directories
+models/
+checkpoints/
+.huggingface/
+transformers_cache/
+prometheus_data/
+grafana_data/
+audio_output/
+recordings/
+
+# Generated audio artifacts
+*.wav
+*.mp3
+*.pcm
+*.flac
+
+# Secrets and deployment artifacts
+*.kubeconfig
+*.secret.yaml
+secrets/
+
+# Project-specific local files
+.history/
 mnt/
 NOTES.md
-
-# Claude Code
+.dockerignore
 .claude/
 CLAUDE.md
-CICD.md
